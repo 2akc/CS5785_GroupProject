@@ -1,0 +1,41 @@
+{
+  "quick": false,
+  "cleaning_report": {
+    "name": "train",
+    "clean": true,
+    "n_raw": 10000,
+    "n_empty": 0,
+    "n_duplicate_rows": 0,
+    "n_conflicting_label_rows": 0,
+    "n_dropped": 0,
+    "n_final": 10000,
+    "notes": []
+  },
+  "texts_modified_by_cleaning": {
+    "train": 14,
+    "unlabeled": 2,
+    "test": 4
+  },
+  "overlap_clean": {
+    "dup_rows_within_train": 0,
+    "dup_rows_within_unlabeled": 0,
+    "dup_rows_within_test": 0,
+    "overlap_train_test": 0,
+    "overlap_train_unlabeled": 0,
+    "overlap_unlabeled_test": 0
+  },
+  "overlap_raw": {
+    "dup_rows_within_train": 0,
+    "dup_rows_within_unlabeled": 0,
+    "dup_rows_within_test": 0,
+    "overlap_train_test": 0,
+    "overlap_train_unlabeled": 0,
+    "overlap_unlabeled_test": 0
+  },
+  "vocab_size_train": 65646,
+  "vocab_size_unlabeled": 32621,
+  "vocab_size_test": 37205,
+  "oov_token_rate_unlabeled_vs_train": 0.023773681416158397,
+  "oov_token_rate_test_vs_train": 0.03215880200905314,
+  "type_jaccard_train_test": 0.3080376446648862
+}

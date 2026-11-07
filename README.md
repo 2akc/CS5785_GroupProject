@@ -68,11 +68,11 @@ QUICK-mode files get a `_quick` suffix.
 | `00_baseline` | word+char TF-IDF + LogReg: val AUROC, 5-fold CV, predictions, first submission | Allen | Intro / model comparison |
 | `01_data_cleaning_eda` | class balance, lengths, duplicates/overlap, train-vs-test shift, raw vs. cleaned | Allen | Intro, generalization |
 | `02_unlabeled_pseudolabel` | vocab on train+unlabeled, pseudo-label thresholds, self-training rounds | Allen | Unlabeled data |
-| `10_model_comparison` | feature × model grid, hyperparameter sweep | Teammate A | Model comparison |
-| `11_training_size` | learning curves, 7 fractions × 3 seeds | Teammate A | Training size |
-| `20_transformer_finetune` | DeBERTa-v3-small fine-tune (GPU, Kaggle/Colab) | Teammate B | Improvements |
-| `21_generalization` | adversarial validation, test-like val set, AUROC by length | Teammate B | Generalization |
-| `22_error_analysis_ensemble` | FP/FN, top features, calibration, rank-average ensemble | Teammate B | Error analysis, improvements |
+| `10_model_comparison` | feature × model grid, hyperparameter sweep | Jolin | Model comparison |
+| `11_training_size` | learning curves, 7 fractions × 3 seeds | Jolin | Training size |
+| `20_transformer_finetune` | DeBERTa-v3-small fine-tune (GPU, Kaggle/Colab) | Aidan | Improvements |
+| `21_generalization` | adversarial validation, test-like val set, AUROC by length | Aidan | Generalization |
+| `22_error_analysis_ensemble` | FP/FN, top features, calibration, rank-average ensemble | Aidan | Error analysis, improvements |
 
 ### Shared conventions
 
@@ -106,14 +106,34 @@ files it should use. Figures are referenced relative to `figures/`
 ## Team workflow
 
 - **Branches:** `main` holds only working, reviewed code. Each person has one branch
-  (`allen`, `teammate-a`, `teammate-b`) and opens a PR into `main` when something works.
-  Merge main into your branch regularly (`git pull origin main`).
-- **Ownership:** only Allen edits `src/` and `predict.py`. Teammates import from `src/` and
-  never modify it; if you need a change, ask Allen and it lands as a small PR.
+  (`allen`, `jolin`, `aidan`) and opens a PR into `main` when something works.
+- **Ownership:** only Allen edits `src/` and `predict.py`. Jolin and Aidan import from `src/`
+  and never modify it; if you need a change, ask Allen and it lands as a small PR.
   Each person only edits their own notebooks, so there are no notebook merge conflicts.
 - **Outputs:** each experiment writes its own `results/<experiment>.csv` and its own figures.
-- **Kaggle:** only Teammate B submits (5/day limit). Others send B their `results/preds_*.csv`
+- **Kaggle:** only Aidan submits (5/day limit). Others send Aidan their `results/preds_*.csv`
   (or a PR with them).
+
+### Getting Allen's latest data pipeline (Jolin / Aidan)
+
+While Allen is iterating on data cleaning, the newest `src/` lives on the `allen` branch
+before it is merged into `main`. Pull it straight into your own branch:
+
+```bash
+# one time
+git clone https://github.com/2akc/CS5785_GroupProject.git && cd CS5785_GroupProject
+git switch jolin                 # or: git switch aidan
+
+# whenever Allen says "pushed a data-pipeline update"
+git pull origin allen            # merges Allen's branch into yours
+git pull origin main             # also keep up with reviewed code on main
+```
+
+This merges cleanly as long as you only touch your own notebooks and `results/`/`figures/`
+files. Because nobody else edits `src/` or Allen's notebooks, there is nothing to conflict.
+The train/val split is computed from the raw ids, so it stays the same when the cleaning
+changes, and results from before and after a pull remain comparable. After pulling, restart
+your Jupyter kernel so the new `src/` code is loaded.
 - **Rules:** CPU-runnable; GPU notebook is optional. No commercial LLM APIs (OpenAI,
   Anthropic, ...) to classify examples or generate predictions. Self-hosted open-source models
   (DeBERTa, GPT-2) are fine.

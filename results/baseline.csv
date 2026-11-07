@@ -1,0 +1,2 @@
+timestamp,git_commit,model,features,clf,quick,n_train,n_val,val_auroc,cv_auroc_mean,cv_auroc_std,cv_auroc_folds,fit_seconds,cv_seconds,n_features
+2026-11-07T17:01:35,5c3f802,baseline,word+char,logreg C=1,False,8000,2000,0.956313,0.9539322901195145,0.001084486120313443,"[0.95316, 0.9547, 0.95482, 0.95481, 0.95217]",7.1,48.8,389790
