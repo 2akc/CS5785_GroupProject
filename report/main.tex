@@ -1,0 +1,30 @@
+% CS5785 Applied ML, Fall 2026 - Kaggle project report: AI vs. human text detection.
+% Compile from this folder:  latexmk -pdf main.tex
+% If the instructor provides a template, restructure this file to match it exactly.
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\graphicspath{{../figures/}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+
+\title{Detecting AI-Generated Text: CS5785 Kaggle Project}
+\author{Allen Lu \and Teammate A \and Teammate B}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{sections/intro}
+\input{sections/model_comparison}
+\input{sections/training_size}
+\input{sections/unlabeled}
+\input{sections/generalization}
+\input{sections/improvements}
+\input{sections/conclusion}
+\input{sections/ai_disclosure}
+
+\end{document}
