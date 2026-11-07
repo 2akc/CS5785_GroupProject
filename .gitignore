@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Data (download from Kaggle; never commit)
+data/*
+!data/README.md
+
+# Submissions (keep the folder)
+submissions/*.csv
+
+# Model artifacts
+*.pkl
+*.joblib
+*.pt
+*.bin
+*.safetensors
+checkpoints/
+wandb/
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+report/main.pdf
