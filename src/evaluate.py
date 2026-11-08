@@ -37,10 +37,11 @@ def auroc(y, p) -> float:
 
 
 def predict_proba1(model, X) -> np.ndarray:
-    """P(label = 1) for any fitted sklearn model (falls back to decision_function)."""
+    """P(label = 1) for any fitted sklearn model. Margin-only models (SVM, ridge) get a
+    sigmoid of decision_function: monotonic, so AUROC is unchanged, but values are in [0, 1]."""
     if hasattr(model, "predict_proba"):
         return model.predict_proba(X)[:, 1]
-    return model.decision_function(X)
+    return 1.0 / (1.0 + np.exp(-model.decision_function(X)))
 
 
 def cross_val_auroc(pipeline, X, y, k: int = N_FOLDS, seed: int = SEED,

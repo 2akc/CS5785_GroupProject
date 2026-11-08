@@ -9,12 +9,14 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator, TransformerMixin, clone
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC
 
+from .config import SEED
 from .evaluate import auroc, predict_proba1
-from .features import FitWithExtraText, build_features, normalize_ws
+from .features import FitWithExtraText, build_features, normalize_ws, robust_features
 
 
 def _logreg(C=1.0):
@@ -69,6 +71,16 @@ MODELS = {
                                ("nb", NBScaler()), ("clf", _logreg(4.0))]),
     # Multinomial Naive Bayes on word + char counts (TF-IDF without idf, non-negative).
     "mnb": lambda: Pipeline([("features", build_features("word+char")), ("clf", MultinomialNB(alpha=0.05))]),
+    # Formatting-robust: word + char + skeleton on normalize_style text (no line breaks,
+    # curly quotes or dash styles), with four different linear classifiers.
+    "robust_lr": lambda: Pipeline([("features", robust_features()), ("clf", _logreg(4.0))]),
+    "robust_svm": lambda: Pipeline([("features", robust_features()), ("clf", LinearSVC(C=0.3))]),
+    "robust_ridge": lambda: Pipeline([("features", robust_features()), ("clf", RidgeClassifier(alpha=1.0))]),
+    "robust_sgd": lambda: Pipeline([("features", robust_features()),
+                                    ("clf", SGDClassifier(loss="modified_huber", alpha=2e-5, max_iter=50,
+                                                          random_state=SEED))]),
+    "robust_nbsvm": lambda: Pipeline([("features", robust_features(idf=False)), ("nb", NBScaler()),
+                                      ("clf", _logreg(4.0))]),
 }
 
 

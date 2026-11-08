@@ -159,6 +159,37 @@ def skeleton_tfidf(**kw) -> TfidfVectorizer:
     return TfidfVectorizer(**params)
 
 
+# --------------------------------------------------------------------------------------
+# Formatting-robust text: same features, but layout and typography can't leak in
+# --------------------------------------------------------------------------------------
+
+_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
+
+
+def normalize_style(text: str) -> str:
+    """Straight quotes, one dash style, single spaces. Removes typographic/layout signals
+    (curly quotes, em dashes, line breaks) that differ by source, not by author."""
+    text = re.sub(r"\s*(—|–|--)\s*", " - ", text.translate(_QUOTES))
+    return normalize_ws(text)
+
+
+def _norm_lower(text):
+    return normalize_style(text).lower()
+
+
+def _norm_skeleton(text):
+    return skeleton_text(normalize_style(text))
+
+
+def robust_features(idf: bool = True):
+    """word + char_wb + skeleton TF-IDF, all computed on ``normalize_style`` text."""
+    return FeatureUnion([
+        ("word", word_tfidf(preprocessor=_norm_lower, use_idf=idf)),
+        ("char", char_tfidf(preprocessor=normalize_style, use_idf=idf)),
+        ("skel", skeleton_tfidf(preprocessor=_norm_skeleton, use_idf=idf)),
+    ])
+
+
 def stylometric(scale: bool = True, robust: bool = False):
     steps = [("stylo", StylometricFeatures(robust=robust))]
     if scale:  # needed for linear models; tree models can use scale=False
