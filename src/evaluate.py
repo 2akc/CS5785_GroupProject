@@ -140,7 +140,7 @@ def save_predictions(name: str, val_df: pd.DataFrame, val_probs, test_df: pd.Dat
 
     * ``val_probs``: from a model trained on the shared *train* split only.
     * ``test_probs``: from the same configuration refit on *all* training data.
-    Aidan ensembles any set of these files using the val rows to choose weights.
+    Any set of these files can be ensembled, using the val rows to choose weights.
     """
     ensure_dirs()
     val_probs, test_probs = np.asarray(val_probs, float), np.asarray(test_probs, float)

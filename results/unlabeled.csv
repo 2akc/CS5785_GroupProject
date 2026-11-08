@@ -1,0 +1,10 @@
+timestamp,git_commit,method,quick,test_as_unlabeled,val_auroc,threshold,balance,rounds,n_added,frac_ai_added,best_round,best_round_val_auroc
+2026-11-07T20:09:14,f3e9ccd-dirty,a_baseline,False,False,0.956313,,,,,,,
+2026-11-07T20:09:36,f3e9ccd-dirty,b_vocab_train+unlabeled,False,False,0.955644,,,,,,,
+2026-11-07T20:09:48,f3e9ccd-dirty,c_pseudo_t0.8,False,False,0.954598,0.8,False,1.0,1223.0,0.53556827473426,,
+2026-11-07T20:10:01,f3e9ccd-dirty,c_pseudo_t0.9,False,False,0.95574,0.9,False,1.0,502.0,0.6175298804780877,,
+2026-11-07T20:10:12,f3e9ccd-dirty,c_pseudo_t0.9_bal,False,False,0.9558290000000002,0.9,True,1.0,384.0,0.5,,
+2026-11-07T20:10:24,f3e9ccd-dirty,c_pseudo_t0.95,False,False,0.956084,0.95,False,1.0,146.0,0.7808219178082192,,
+2026-11-07T20:10:40,f3e9ccd-dirty,c_pseudo_t0.99,False,False,0.956313,0.99,False,1.0,1.0,1.0,,
+2026-11-07T20:12:04,f3e9ccd-dirty,d_selftrain_t0.9,False,False,0.95568,0.9,False,5.0,553.0,,0.0,0.956313
+2026-11-07T20:13:01,f3e9ccd-dirty,d_selftrain_t0.9_bal,False,False,0.955838,0.9,True,5.0,432.0,,0.0,0.956313

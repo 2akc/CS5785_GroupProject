@@ -1,0 +1,9 @@
+timestamp,git_commit,variant,quick,val_auroc,fit_s
+2026-11-07T20:11:32,f3e9ccd-dirty,baseline,False,0.956313,12.9
+2026-11-07T20:11:45,f3e9ccd-dirty,C=4,False,0.961762,12.8
+2026-11-07T20:12:02,f3e9ccd-dirty,+ style features,False,0.979911,16.5
+2026-11-07T20:12:18,f3e9ccd-dirty,char (not char_wb),False,0.969031,16.5
+2026-11-07T20:12:32,f3e9ccd-dirty,word keeps case,False,0.957873,13.7
+2026-11-07T20:12:35,f3e9ccd-dirty,word only,False,0.95222,2.9
+2026-11-07T20:12:44,f3e9ccd-dirty,char only,False,0.938312,9.1
+2026-11-07T20:12:47,f3e9ccd-dirty,style only,False,0.9576250000000001,2.4

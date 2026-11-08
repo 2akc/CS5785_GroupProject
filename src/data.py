@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 
 import ftfy
@@ -54,17 +55,35 @@ _FTFY_KW = dict(
 )
 
 
-def clean_text(text) -> str:
-    """Light cleaning: repair mojibake, Unicode NFC, strip outer whitespace. Nothing else."""
+# Optional extra steps for cleaning experiments. Pass e.g. clean=["quotes", "newlines"]
+# to any loader / get_split. clean=True means the light default only.
+EXTRA_STEPS = {
+    "quotes": lambda t: t.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})),
+    "dashes": lambda t: re.sub(r"\s*(—|–|--)\s*", " - ", t),
+    "newlines": lambda t: re.sub(r"\s*\n\s*", " ", t),
+    "spaces": lambda t: re.sub(r"[ \t]{2,}", " ", t),
+}
+
+
+def clean_text(text, extra=()) -> str:
+    """Light cleaning: repair mojibake, Unicode NFC, strip outer whitespace.
+    ``extra``: optional steps from ``EXTRA_STEPS`` (experiments only)."""
     if not isinstance(text, str):
         return ""
-    return ftfy.fix_text(text, **_FTFY_KW).strip()
+    text = ftfy.fix_text(text, **_FTFY_KW)
+    for step in extra:
+        text = EXTRA_STEPS[step](text)
+    return text.strip()
 
 
-def _as_text(series: pd.Series, clean: bool) -> pd.Series:
-    if clean:
-        return series.map(clean_text)
-    return series.where(series.map(lambda x: isinstance(x, str)), "")
+def _as_text(series: pd.Series, clean) -> pd.Series:
+    if not clean:
+        return series.where(series.map(lambda x: isinstance(x, str)), "")
+    extra = () if clean is True else tuple(clean)
+    unknown = set(extra) - set(EXTRA_STEPS)
+    if unknown:
+        raise ValueError(f"unknown cleaning steps {unknown}; choose from {list(EXTRA_STEPS)}")
+    return series.map(lambda t: clean_text(t, extra))
 
 
 def group_keys(texts) -> np.ndarray:
@@ -81,7 +100,7 @@ def group_keys(texts) -> np.ndarray:
 @dataclass
 class CleaningReport:
     name: str
-    clean: bool
+    clean: object  # True, False, or list of extra steps
     n_raw: int
     n_empty: int = 0
     n_duplicate_rows: int = 0          # rows whose text already appeared earlier

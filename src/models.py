@@ -1,6 +1,6 @@
 """Named model pipelines (used by notebooks and predict.py) and semi-supervised helpers.
 
-Add a final pipeline here (via a small PR to Allen) so ``python predict.py --model <name>``
+Add a final pipeline here so ``python predict.py --model <name>``
 can rebuild it from scratch.
 """
 from __future__ import annotations
