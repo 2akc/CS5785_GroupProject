@@ -91,21 +91,76 @@ def stylometric_vector(text: str) -> list[float]:
     ]
 
 
+def normalize_ws(text: str) -> str:
+    """Collapse all whitespace (newlines, tabs, double spaces) to single spaces."""
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# Features that only describe layout (line breaks, spacing), not the writing itself. In train,
+# AI texts have about 2x the line breaks, but test is full of poems, recipes and hard-wrapped
+# abstracts, so these features flag human test texts as AI. robust=True removes them.
+FORMAT_FEATURES = ("newline_count", "double_space_count")
+_KEEP_ROBUST = [i for i, f in enumerate(STYLO_FEATURES) if f not in FORMAT_FEATURES]
+
+
 class StylometricFeatures(BaseEstimator, TransformerMixin):
-    """Hand-crafted style statistics (dense, unscaled). Stateless."""
+    """Hand-crafted style statistics (dense, unscaled). Stateless.
+
+    ``robust=True`` normalizes whitespace first (so sentence splitting ignores line breaks)
+    and drops the layout-only features in ``FORMAT_FEATURES``.
+    """
+
+    def __init__(self, robust: bool = False):
+        self.robust = robust
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
+        if self.robust:
+            M = np.asarray([stylometric_vector(normalize_ws(t)) for t in X], dtype=np.float32)
+            return M[:, _KEEP_ROBUST]
         return np.asarray([stylometric_vector(t) for t in X], dtype=np.float32)
 
     def get_feature_names_out(self, input_features=None):
-        return np.asarray(STYLO_FEATURES, dtype=object)
+        names = np.asarray(STYLO_FEATURES, dtype=object)
+        return names[_KEEP_ROBUST] if self.robust else names
 
 
-def stylometric(scale: bool = True):
-    steps = [("stylo", StylometricFeatures())]
+# --------------------------------------------------------------------------------------
+# Function-word skeleton: topic-free n-grams
+# --------------------------------------------------------------------------------------
+
+_SKEL_TOKEN = re.compile(r"\w+|[^\w\s]")
+
+
+def skeleton_text(text: str) -> str:
+    """Keep function words and punctuation, replace content words by their shape.
+
+    "The Eiffel Tower is 330 m tall." -> "the X X is 0 x x ."
+    The resulting n-grams describe sentence structure and style, not topic.
+    """
+    out = []
+    for tok in _SKEL_TOKEN.findall(text):
+        low = tok.lower()
+        if low in _STOP or not tok[0].isalnum():
+            out.append(low)
+        elif tok.isdigit():
+            out.append("0")
+        else:
+            out.append("X" if tok[0].isupper() else "x")
+    return " ".join(out)
+
+
+def skeleton_tfidf(**kw) -> TfidfVectorizer:
+    params = dict(preprocessor=skeleton_text, token_pattern=r"\S+", lowercase=False,
+                  ngram_range=(1, 4), min_df=3, sublinear_tf=True, dtype=np.float32)
+    params.update(kw)
+    return TfidfVectorizer(**params)
+
+
+def stylometric(scale: bool = True, robust: bool = False):
+    steps = [("stylo", StylometricFeatures(robust=robust))]
     if scale:  # needed for linear models; tree models can use scale=False
         steps.append(("scale", StandardScaler()))
     return Pipeline(steps)
@@ -115,16 +170,19 @@ def stylometric(scale: bool = True):
 # Factory
 # --------------------------------------------------------------------------------------
 
-FEATURE_SETS = ("word_tfidf", "char_tfidf", "word+char", "stylometric", "all")
+FEATURE_SETS = ("word_tfidf", "char_tfidf", "word+char", "stylometric", "all",
+                "stylometric_robust", "all_robust", "skeleton", "word+char+skeleton")
 
 
 def build_features(name: str, **kw):
     """Return an unfitted transformer for one of ``FEATURE_SETS``.
 
     Keyword overrides: ``word={...}`` / ``char={...}`` are passed to the TF-IDF vectorizers,
-    ``scale=False`` disables scaling of stylometric features.
+    ``skel={...}`` to the skeleton vectorizer, ``scale=False`` disables scaling of
+    stylometric features. ``*_robust`` sets use whitespace-normalized style features.
     """
     word_kw, char_kw, scale = kw.pop("word", {}), kw.pop("char", {}), kw.pop("scale", True)
+    skel_kw = kw.pop("skel", {})
     if kw:
         raise TypeError(f"unexpected arguments {list(kw)}")
     if name == "word_tfidf":
@@ -133,6 +191,16 @@ def build_features(name: str, **kw):
         return char_tfidf(**char_kw)
     if name == "stylometric":
         return stylometric(scale)
+    if name == "stylometric_robust":
+        return stylometric(scale, robust=True)
+    if name == "skeleton":
+        return skeleton_tfidf(**skel_kw)
+    if name == "word+char+skeleton":
+        return FeatureUnion([("word", word_tfidf(**word_kw)), ("char", char_tfidf(**char_kw)),
+                             ("skel", skeleton_tfidf(**skel_kw))])
+    if name == "all_robust":
+        return FeatureUnion([("word", word_tfidf(**word_kw)), ("char", char_tfidf(**char_kw)),
+                             ("stylo", stylometric(scale, robust=True))])
     if name == "word+char":
         return FeatureUnion([("word", word_tfidf(**word_kw)), ("char", char_tfidf(**char_kw))])
     if name == "all":

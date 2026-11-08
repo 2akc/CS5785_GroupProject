@@ -15,7 +15,7 @@ Put the Kaggle CSVs in `data/` (see [data/README.md](data/README.md)).
 ## Reproduce the submission
 ```bash
 python predict.py --model baseline                  # train on all labelled data, predict test
-python predict.py --ensemble baseline deberta_small # rank-average saved predictions
+python predict.py --ensemble skeleton_only baseline # rank-average saved predictions
 ```
 Writes a validated `submissions/submission_<timestamp>.csv` (3,000 rows, `id,label`, values in [0, 1]).
 
@@ -23,10 +23,10 @@ Writes a validated `submissions/submission_<timestamp>.csv` (3,000 rows, `id,lab
 | Path | Contents |
 |---|---|
 | `src/data.py` | Loading, light cleaning (encoding fix + NFC only), fixed 80/20 train/val split |
-| `src/features.py` | Word / char TF-IDF and stylometric features |
-| `src/models.py` | Named model pipelines, pseudo-labelling / self-training |
+| `src/features.py` | Word / char TF-IDF, function-word skeleton n-grams, stylometric features |
+| `src/models.py` | Named classical pipelines (LogReg, NB-SVM, MNB), pseudo-labelling |
 | `src/evaluate.py` | AUROC, cross-validation, result logging, prediction files, submission checks |
-| `notebooks/` | Experiments: baseline, EDA, unlabeled data, model comparison, training size, transformer, generalization, ensemble |
+| `notebooks/` | Experiments: baseline, EDA, unlabeled data, model comparison, training size, advanced classical models, generalization, ensemble |
 | `results/`, `figures/` | Experiment outputs used in the report |
 | `report/` | LaTeX report (`cd report && latexmk -pdf main.tex`) |
 

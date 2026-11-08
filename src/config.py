@@ -40,17 +40,10 @@ EXPECTED_TEST_ROWS = 3000
 
 
 def set_seed(seed: int = SEED) -> None:
-    """Seed python, numpy and (if installed) torch for reproducible runs."""
+    """Seed python and numpy for reproducible runs."""
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
-    try:
-        import torch
-    except ImportError:
-        return
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
 
 
 def ensure_dirs() -> None:

@@ -5,7 +5,7 @@ Examples
 --------
     python predict.py --model baseline
     python predict.py --model baseline --vocab-unlabeled --pseudo-threshold 0.9 --pseudo-rounds 2
-    python predict.py --ensemble baseline deberta_small          # rank-average saved preds
+    python predict.py --ensemble baseline logreg_char             # rank-average saved preds
     python predict.py --ensemble                                 # all results/preds_*.csv
 
 ``--model`` retrains the named pipeline from src/models.py on ALL of train.csv (optionally
@@ -18,7 +18,6 @@ import argparse
 import sys
 import time
 
-import numpy as np
 
 from src.config import ID_COL, LABEL_COL, set_seed
 from src.data import load_test, load_train, load_unlabeled
@@ -38,11 +37,7 @@ def run_model(args, test):
     extra = None
     unl = None
     if args.vocab_unlabeled or args.pseudo_threshold:
-        unl = load_unlabeled(clean=not args.no_clean)
-        if args.pseudo_include_test:
-            unl = np.concatenate([unl["text"].to_numpy(), test["text"].to_numpy()])
-        else:
-            unl = unl["text"].to_numpy()
+        unl = load_unlabeled(clean=not args.no_clean)["text"].to_numpy()
     if args.vocab_unlabeled:
         extra = unl
 
@@ -98,8 +93,6 @@ def main(argv=None):
     ap.add_argument("--pseudo-threshold", type=float, help="enable self-training, e.g. 0.9")
     ap.add_argument("--pseudo-rounds", type=int, default=1)
     ap.add_argument("--pseudo-balance", action="store_true", help="add equal numbers of each class")
-    ap.add_argument("--pseudo-include-test", action="store_true",
-                    help="also use test texts as unlabeled data (transductive)")
     ap.add_argument("--no-clean", action="store_true", help="use raw text (no light cleaning)")
     ap.add_argument("--quick", action="store_true", help="train on train_starter_2000.csv (debug)")
     ap.add_argument("--tag", default="", help="suffix for the submission filename")

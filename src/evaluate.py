@@ -171,7 +171,7 @@ def list_predictions() -> list[str]:
 
 def rank_average(prob_arrays, weights=None) -> np.ndarray:
     """Weighted mean of per-model ranks, rescaled to [0, 1]. Scale-free, so models whose
-    outputs are not calibrated (SVM margins, transformer logits) can be mixed safely."""
+    outputs are not calibrated (SVM margins, NB log-odds) can be mixed safely."""
     arrs = [rankdata(np.asarray(p)) / len(p) for p in prob_arrays]
     w = np.ones(len(arrs)) if weights is None else np.asarray(weights, float)
     r = np.average(np.vstack(arrs), axis=0, weights=w)

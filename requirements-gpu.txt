@@ -1,9 +1,0 @@
-# Extra packages for the optional GPU notebook (notebooks/aidan/transformer.ipynb).
-# Install on Kaggle/Colab on top of requirements.txt:
-#   pip install -r requirements.txt -r requirements-gpu.txt
-torch==2.5.1
-transformers==4.46.3
-datasets==3.1.0
-accelerate==1.1.1
-sentencepiece==0.2.0   # DeBERTa-v3 tokenizer
-protobuf==5.28.3

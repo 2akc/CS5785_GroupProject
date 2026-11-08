@@ -7,22 +7,68 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.base import clone
+import scipy.sparse as sp
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
 from .evaluate import auroc, predict_proba1
-from .features import FitWithExtraText, build_features
+from .features import FitWithExtraText, build_features, normalize_ws
 
 
 def _logreg(C=1.0):
     return LogisticRegression(C=C, max_iter=2000, solver="liblinear")
 
 
+class NBScaler(BaseEstimator, TransformerMixin):
+    """NB-SVM feature scaling (Wang & Manning, 2012): multiply each feature by its Naive Bayes
+    log-count ratio r = log((p / |p|) / (q / |q|)), so a linear model starts from NB's evidence."""
+
+    def __init__(self, alpha: float = 1.0):
+        self.alpha = alpha
+
+    def fit(self, X, y):
+        y = np.asarray(y)
+        p = self.alpha + X[y == 1].sum(0)
+        q = self.alpha + X[y == 0].sum(0)
+        self.r_ = np.asarray(np.log((p / p.sum()) / (q / q.sum()))).ravel()
+        return self
+
+    def transform(self, X):
+        return sp.csr_matrix(X).multiply(self.r_).tocsr()
+
+
+def _char_ws(**kw):
+    """char (not char_wb) n-grams on whitespace-normalized text: sees punctuation and spacing
+    between words, but not line breaks or layout."""
+    return dict(analyzer="char", preprocessor=normalize_ws, **kw)
+
+
 MODELS = {
     # word (1-2) + char_wb (3-5) TF-IDF -> logistic regression. The reference baseline.
     "baseline": lambda: Pipeline([("features", build_features("word+char")), ("clf", _logreg(1.0))]),
+    # + all style features. Val 0.980 but Kaggle 0.804: line-break features don't transfer.
     "logreg_all": lambda: Pipeline([("features", build_features("all")), ("clf", _logreg(1.0))]),
+    # + style features computed on whitespace-normalized text, layout features removed.
+    "logreg_all_robust": lambda: Pipeline([("features", build_features("all_robust")), ("clf", _logreg(1.0))]),
+    # word + char n-grams across word boundaries (whitespace-normalized).
+    "logreg_char": lambda: Pipeline([("features", build_features("word+char", char=_char_ws())),
+                                     ("clf", _logreg(1.0))]),
+    # Topic-free only: function-word skeleton n-grams (content words replaced by their shape).
+    "skeleton_only": lambda: Pipeline([("features", build_features("skeleton")), ("clf", _logreg(4.0))]),
+    # baseline + topic-free function-word skeleton n-grams.
+    "logreg_skeleton": lambda: Pipeline([("features", build_features("word+char+skeleton")),
+                                         ("clf", _logreg(4.0))]),
+    # word + char (whitespace-normalized) + skeleton.
+    "logreg_char_skeleton": lambda: Pipeline([("features", build_features("word+char+skeleton", char=_char_ws())),
+                                              ("clf", _logreg(1.0))]),
+    # NB-SVM: NB log-count ratios as feature weights, then logistic regression.
+    "nbsvm": lambda: Pipeline([("features", build_features("word+char", word={"use_idf": False},
+                                                           char={"use_idf": False})),
+                               ("nb", NBScaler()), ("clf", _logreg(4.0))]),
+    # Multinomial Naive Bayes on word + char counts (TF-IDF without idf, non-negative).
+    "mnb": lambda: Pipeline([("features", build_features("word+char")), ("clf", MultinomialNB(alpha=0.05))]),
 }
 
 
