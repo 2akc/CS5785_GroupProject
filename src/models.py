@@ -16,7 +16,8 @@ from sklearn.svm import LinearSVC
 
 from .config import SEED
 from .evaluate import auroc, predict_proba1
-from .features import FitWithExtraText, build_features, normalize_ws, robust_features
+from .features import (FitWithExtraText, build_features, has_blank_line_breaks, normalize_ws,
+                       robust_features)
 
 
 def _logreg(C=1.0):
@@ -39,6 +40,29 @@ class NBScaler(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return sp.csr_matrix(X).multiply(self.r_).tocsr()
+
+
+class BlankLineBoost(BaseEstimator):
+    """Adds ``push`` to P(AI) for texts with blank-line paragraph breaks, then rescales to [0, 1].
+
+    All 2,734 such train texts are AI, but test also has human ones (BBC news, old poems),
+    so a hard rule is risky. push=0.1 beat no boost on val even with 30% simulated
+    human blank-line texts; push=1 (a hard rule) did not."""
+
+    def __init__(self, estimator, push: float = 0.1):
+        self.estimator = estimator
+        self.push = push
+
+    def fit(self, X, y):
+        self.estimator_ = clone(self.estimator).fit(X, y)
+        self.classes_ = self.estimator_.classes_
+        return self
+
+    def predict_proba(self, X):
+        X = list(X)
+        b = np.array([has_blank_line_breaks(t) for t in X], dtype=float)
+        p = (predict_proba1(self.estimator_, X) + self.push * b) / (1 + self.push)
+        return np.column_stack([1 - p, p])
 
 
 def _char_ws(**kw):
@@ -81,6 +105,23 @@ MODELS = {
                                                           random_state=SEED))]),
     "robust_nbsvm": lambda: Pipeline([("features", robust_features(idf=False)), ("nb", NBScaler()),
                                       ("clf", _logreg(4.0))]),
+    # Tuned SVM (grid over n-gram ranges, block weights, C; selected on val + perturbed val):
+    # word 1-3, char 3-6 across word boundaries (down-weighted), skeleton 2-6.
+    "robust_svm_tuned": lambda: Pipeline([
+        ("features", robust_features(word={"ngram_range": (1, 3)},
+                                     char={"analyzer": "char", "ngram_range": (3, 6), "min_df": 3},
+                                     skel={"ngram_range": (2, 6)},
+                                     weights={"word": 2.0, "char": 0.5, "skel": 1.0})),
+        ("clf", LinearSVC(C=1.0))]),
+    # No character n-grams: word + skeleton only (char n-grams are the most domain-specific).
+    "robust_svm_nochar": lambda: Pipeline([("features", robust_features(char=False)),
+                                           ("clf", LinearSVC(C=1.0))]),
+    # Tuned no-char version: word 1-3 + skeleton (half weight), C=3.
+    "robust_svm_nochar_tuned": lambda: Pipeline([
+        ("features", robust_features(char=False, word={"ngram_range": (1, 3)}, weights={"word": 1.0, "skel": 0.5})),
+        ("clf", LinearSVC(C=3.0))]),
+    # Best Kaggle model + soft boost for blank-line paragraph breaks.
+    "robust_svm_tuned_blank": lambda: BlankLineBoost(MODELS["robust_svm_tuned"](), push=0.1),
 }
 
 

@@ -173,6 +173,14 @@ def normalize_style(text: str) -> str:
     return normalize_ws(text)
 
 
+def has_blank_line_breaks(text: str) -> bool:
+    """Paragraphs separated by blank lines (\\n\\n) at least as often as by single \\n.
+    In train.csv every such text (2,734 of 10,000) is AI; humans use single line breaks."""
+    blank = len(re.findall(r"\n\s*\n", text))
+    single = len(re.findall(r"(?<!\n)\n(?!\n)", text))
+    return blank >= max(1, single)
+
+
 def _norm_lower(text):
     return normalize_style(text).lower()
 
@@ -181,13 +189,17 @@ def _norm_skeleton(text):
     return skeleton_text(normalize_style(text))
 
 
-def robust_features(idf: bool = True):
-    """word + char_wb + skeleton TF-IDF, all computed on ``normalize_style`` text."""
-    return FeatureUnion([
-        ("word", word_tfidf(preprocessor=_norm_lower, use_idf=idf)),
-        ("char", char_tfidf(preprocessor=normalize_style, use_idf=idf)),
-        ("skel", skeleton_tfidf(preprocessor=_norm_skeleton, use_idf=idf)),
-    ])
+def robust_features(idf: bool = True, word=None, char=None, skel=None, weights=None):
+    """word + char_wb + skeleton TF-IDF, all computed on ``normalize_style`` text.
+
+    ``word`` / ``char`` / ``skel``: vectorizer overrides, or ``False`` to drop that block.
+    ``weights``: per-block multipliers, e.g. ``{"char": 0.5}``.
+    """
+    blocks = [("word", word, lambda kw: word_tfidf(preprocessor=_norm_lower, use_idf=idf, **kw)),
+              ("char", char, lambda kw: char_tfidf(preprocessor=normalize_style, use_idf=idf, **kw)),
+              ("skel", skel, lambda kw: skeleton_tfidf(preprocessor=_norm_skeleton, use_idf=idf, **kw))]
+    return FeatureUnion([(n, make(kw or {})) for n, kw, make in blocks if kw is not False],
+                        transformer_weights=weights)
 
 
 def stylometric(scale: bool = True, robust: bool = False):
