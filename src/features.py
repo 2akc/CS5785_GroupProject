@@ -181,6 +181,36 @@ def has_blank_line_breaks(text: str) -> bool:
     return blank >= max(1, single)
 
 
+FORMAT_FLAGS = {  # raw-text formatting flags; AI rate in train when the flag is on
+    "blank_line_breaks": has_blank_line_breaks,                                    # 100%
+    "no_end_punct": lambda t: t.rstrip()[-1:] not in '.!?"”\')',                   # 80% (cut-off text)
+    "starts_nonalpha": lambda t: not t[:1].isalnum(),                              # 96%
+    "numbered_list": lambda t: len(re.findall(r"(?m)^\s*\d+[.)]\s", t)) >= 2,      # 100%
+    "double_space": lambda t: "  " in t,                                           # 20%
+    "nbsp": lambda t: "\xa0" in t,                                                 # 5%
+    "curly_quotes": lambda t: bool(re.search(r"[“”‘’]", t)),                        # 41%
+    "em_dash": lambda t: "—" in t,                                                 # 69%
+    "trailing_space_line": lambda t: bool(re.search(r"[ \t]\n", t)),                # 57%
+    "first_line_title": lambda t: ("\n" in t and len(t.split("\n")[0].split()) <= 10
+                                   and t.split("\n")[0].rstrip()[-1:] not in ".!?"),  # 46%
+}
+
+
+def format_flags(texts) -> np.ndarray:
+    return np.array([[f(t) for f in FORMAT_FLAGS.values()] for t in texts], dtype=float)
+
+
+def line_break_style(texts) -> np.ndarray:
+    """[no line breaks, mostly single breaks, log(1 + #breaks)]. In train: none = 44% AI,
+    single = 21% AI, blank-line = 100% AI."""
+    out = []
+    for t in texts:
+        single = len(re.findall(r"(?<!\n)\n(?!\n)", t))
+        blank = len(re.findall(r"\n\s*\n", t))
+        out.append([single + blank == 0, single > blank, np.log1p(single + blank)])
+    return np.array(out, dtype=float)
+
+
 def _norm_lower(text):
     return normalize_style(text).lower()
 
