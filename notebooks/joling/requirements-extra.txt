@@ -1,0 +1,5 @@
+# Extra packages for notebooks/joling (on top of the repo's requirements.txt).
+#   pip install -r notebooks/joling/requirements-extra.txt -c requirements.txt
+# Used to score texts with a small pretrained language model on the laptop (no API calls).
+torch==2.15.0
+transformers==5.22.2
