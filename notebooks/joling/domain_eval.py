@@ -121,7 +121,7 @@ def _mean_by_domain(y, p, dom) -> float:
 
 def domain_stress_test(make_model, train_df: pd.DataFrame, val_df: pd.DataFrame,
                        dom_train, dom_val, size_control: bool = False, seed: int = SEED,
-                       verbose: bool = True):
+                       verbose: bool = True, score_train: bool = False):
     """Score one model configuration the four ways described at the top of this file.
 
     ``make_model``: a function with no arguments that returns a fresh, unfitted model
@@ -131,6 +131,11 @@ def domain_stress_test(make_model, train_df: pd.DataFrame, val_df: pd.DataFrame,
     training set smaller, so for each domain we additionally train a model with the same
     number of rows removed AT RANDOM (same human/AI counts). If that model is still good,
     the drop comes from the missing domain and not from having less data.
+
+    ``score_train=True`` also scores every TRAINING text with the model that did not see
+    its domain. These "unseen" training scores let us choose settings (for example blend
+    weights) for unseen domains without touching the validation labels. They are returned
+    as ``preds.attrs["train_unseen"]``.
 
     Returns ``(summary, per_domain, preds)``:
     ``summary`` - dict of headline numbers; ``per_domain`` - one row per domain;
@@ -149,6 +154,8 @@ def domain_stress_test(make_model, train_df: pd.DataFrame, val_df: pd.DataFrame,
 
     n = len(y_va)
     p_unseen, p_unseen_flat, p_control = np.zeros(n), np.zeros(n), np.full(n, np.nan)
+    X_tr_flat = pd.Series(flatten_layout(X_tr)) if score_train else None
+    tr_unseen, tr_unseen_flat = np.zeros(len(y_tr)), np.zeros(len(y_tr))
     rows = []
     for d in np.unique(dom_train):
         in_val = dom_val == d
@@ -156,6 +163,9 @@ def domain_stress_test(make_model, train_df: pd.DataFrame, val_df: pd.DataFrame,
         model = make_model().fit(X_tr[keep], y_tr[keep])
         p_unseen[in_val] = predict_proba1(model, X_va[in_val])
         p_unseen_flat[in_val] = predict_proba1(model, X_va_flat[in_val])
+        if score_train:                             # the held-out TRAINING rows of this domain
+            tr_unseen[~keep] = predict_proba1(model, X_tr[~keep])
+            tr_unseen_flat[~keep] = predict_proba1(model, X_tr_flat[~keep])
         row = {"domain": int(d), "n_train_removed": int((~keep).sum()), "n_val": int(in_val.sum()),
                "val_ai_share": float(y_va[in_val].mean()),
                "seen": _safe_auroc(y_va[in_val], p_std[in_val])}
@@ -187,4 +197,13 @@ def domain_stress_test(make_model, train_df: pd.DataFrame, val_df: pd.DataFrame,
     preds = pd.DataFrame({ID_COL: val_df[ID_COL].to_numpy(), LABEL_COL: y_va, "domain": dom_val,
                           "p_standard": p_std, "p_layout_removed": p_std_flat,
                           "p_unseen": p_unseen, "p_unseen_layout_removed": p_unseen_flat})
+    if score_train:
+        preds.attrs["train_unseen"] = pd.DataFrame({
+            ID_COL: train_df[ID_COL].to_numpy(), LABEL_COL: y_tr, "domain": dom_train,
+            "p_unseen": tr_unseen, "p_unseen_layout_removed": tr_unseen_flat})
     return summary, pd.DataFrame(rows), preds
+
+
+def mean_auroc_by_domain(y, p, dom) -> float:
+    """Average of the per-domain AUROCs (the "unseen domain" headline number)."""
+    return _mean_by_domain(np.asarray(y), np.asarray(p), np.asarray(dom))
