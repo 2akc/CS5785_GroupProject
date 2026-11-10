@@ -10,8 +10,32 @@ Rules followed here:
 | File | What it is |
 |---|---|
 | `01_domain_yardstick.ipynb` | Scores the team's models on topics they did not train on, and with layout removed. About 20 minutes on a laptop. |
+| `02_lm_predictability.ipynb` | Classifier on GPT-2 "predictability" features, blended with `robust_svm_tuned`. Writes three Kaggle files. About 12 minutes (uses the cached features). |
+| `lm_features.py` | Computes the 24 language-model features. `python notebooks/joling/lm_features.py` rebuilds the cache (about 30 minutes, resumable). |
+| `lm_model.py` | Classifiers on the cached features and rank blending. |
 | `domain_eval.py` | `TopicDomains` (unsupervised topic groups) and `domain_stress_test` (the four validation numbers). |
 | `plots.py` | Chart helpers. |
-| `requirements-extra.txt` | Extra packages for the language-model notebook (`02`, in progress). |
+| `requirements-extra.txt` | `torch` and `transformers`, needed only to rebuild the feature cache. |
 
-Outputs are written to `results/joling_*.csv` and `figures/joling_*.png`.
+## Reproduce
+```bash
+pip install -r requirements.txt
+pip install -r notebooks/joling/requirements-extra.txt -c requirements.txt   # only to rebuild the cache
+python notebooks/joling/lm_features.py                                       # optional: results/joling_lm_features_gpt2.csv is committed
+jupyter nbconvert --to notebook --execute --inplace notebooks/joling/01_domain_yardstick.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/joling/02_lm_predictability.ipynb
+```
+Notebook `02` writes `submissions/submission_<time>_joling_{lm,blend,blend_blank}.csv`.
+Other outputs go to `results/joling_*.csv`, `results/preds_joling_*.csv` and `figures/joling_*.png`. Seed: 42 everywhere.
+
+## Result so far (shared validation set)
+| Model | Validation | Unseen domain + layout removed |
+|---|---|---|
+| `robust_svm_tuned` | 0.979 | 0.933 |
+| `robust_svm_tuned_blank` | 0.991 | 0.933 |
+| Language-model classifier | 0.979 | 0.976 |
+| Blend: SVM + language-model classifier (weight 0.6) | 0.993 | 0.987 |
+| Blend: SVM + blank-line boost + language-model classifier | 0.995 | 0.987 |
+
+The pretrained GPT-2 and distilgpt2 weights are used as fixed feature extractors on the laptop; no API is called
+and no weights are fine-tuned.

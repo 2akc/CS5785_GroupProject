@@ -92,3 +92,45 @@ def plot_domain_drop(per_domain: dict[str, pd.DataFrame], names: list[str]):
                       labelcolor=SECONDARY, handletextpad=0.3)
     fig.tight_layout()
     return fig
+
+
+def plot_feature_by_class(features: pd.DataFrame, labels, columns: list[str], titles: list[str] | None = None):
+    """Histogram of each chosen feature for human vs. AI texts (one small panel per feature)."""
+    labels = np.asarray(labels)
+    fig, axes = plt.subplots(1, len(columns), figsize=(4.3 * len(columns), 3.2), facecolor=SURFACE, squeeze=False)
+    for ax, col, title in zip(axes[0], columns, titles or columns):
+        lo, hi = np.percentile(features[col], [0.5, 99.5])
+        bins = np.linspace(lo, hi, 45)
+        for lab, name, colour in ((0, "Human", BLUE), (1, "AI", ORANGE)):
+            ax.hist(features[col][labels == lab], bins=bins, histtype="stepfilled", alpha=0.35, color=colour,
+                    edgecolor=colour, linewidth=1.6, label=name)
+        ax.set_title(title, loc="left", fontsize=10, color=INK)
+        ax.set_yticks([])
+        _clean(ax)
+        ax.grid(False)
+    axes[0][0].legend(frameon=False, fontsize=9, labelcolor=SECONDARY, loc="upper left")
+    fig.tight_layout()
+    return fig
+
+
+def plot_weight_curve(weights, scores, chosen: float):
+    """Unseen-domain AUROC on the training rows for each blend weight; the chosen one is marked."""
+    weights, scores = np.asarray(weights, float), np.asarray(scores, float)
+    fig, ax = plt.subplots(figsize=(6.4, 3.6), facecolor=SURFACE)
+    ax.plot(weights, scores, color=BLUE, linewidth=2, marker="o", markersize=5, markeredgecolor=SURFACE)
+    i = int(np.argmin(np.abs(weights - chosen)))
+    ax.plot(weights[i], scores[i], "o", color=BLUE, markersize=11, markeredgecolor=SURFACE, markeredgewidth=2)
+    ax.annotate(f"chosen: {weights[i]:.1f}  ({scores[i]:.3f})", (weights[i], scores[i]), xytext=(0, 12),
+                textcoords="offset points", ha="center", fontsize=9, color=INK)
+    ax.annotate(f"text model only\n{scores[0]:.3f}", (weights[0], scores[0]), xytext=(8, -4), textcoords="offset points",
+                ha="left", va="top", fontsize=8.5, color=SECONDARY)
+    ax.annotate(f"language-model\nfeatures only\n{scores[-1]:.3f}", (weights[-1], scores[-1]), xytext=(-8, -6),
+                textcoords="offset points", ha="right", va="top", fontsize=8.5, color=SECONDARY)
+    ax.set_xlabel("Weight of the language-model classifier in the blend", color=SECONDARY, fontsize=9)
+    ax.set_ylabel("Unseen-domain AUROC\n(training rows)", color=SECONDARY, fontsize=9)
+    ax.set_ylim(scores.min() - 0.012, scores.max() + 0.012)
+    _clean(ax)
+    ax.grid(axis="y", color=GRID, linewidth=0.8)
+    ax.grid(axis="x", visible=False)
+    fig.tight_layout()
+    return fig
