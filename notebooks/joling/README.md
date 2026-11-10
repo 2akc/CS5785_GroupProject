@@ -28,14 +28,17 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/joling/02_lm_predi
 Notebook `02` writes `submissions/submission_<time>_joling_{lm,blend,blend_blank}.csv`.
 Other outputs go to `results/joling_*.csv`, `results/preds_joling_*.csv` and `figures/joling_*.png`. Seed: 42 everywhere.
 
-## Result so far (shared validation set)
-| Model | Validation | Unseen domain + layout removed |
-|---|---|---|
-| `robust_svm_tuned` | 0.979 | 0.933 |
-| `robust_svm_tuned_blank` | 0.991 | 0.933 |
-| Language-model classifier | 0.979 | 0.976 |
-| Blend: SVM + language-model classifier (weight 0.6) | 0.993 | 0.987 |
-| Blend: SVM + blank-line boost + language-model classifier | 0.995 | 0.987 |
+## Result so far
+| Model | Validation | Unseen domain + layout removed | Kaggle public |
+|---|---|---|---|
+| `robust_svm_tuned` | 0.979 | 0.933 | not recorded |
+| `robust_svm_tuned_blank` (team's previous best) | 0.991 | 0.933 | 0.913 |
+| Language-model classifier | 0.979 | 0.976 | 0.914 |
+| Blend: SVM + language-model classifier (weight 0.6) | 0.993 | 0.987 | 0.936 |
+| Blend: SVM + blank-line boost + language-model classifier | 0.995 | 0.987 | **0.941** |
+
+Validation columns use the shared 2,000-row set. Kaggle public scores (900 test rows) were read from the
+submissions page on 2026-11-10 and are listed in `results/joling_kaggle_public.csv`.
 
 The pretrained GPT-2 and distilgpt2 weights are used as fixed feature extractors on the laptop; no API is called
 and no weights are fine-tuned.
