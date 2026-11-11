@@ -1,0 +1,2 @@
+timestamp,git_commit,model,hidden,lr,rounds,svd,push,val_auroc,val_auroc_blank
+2026-11-09T22:03:18,7803bfd,BoostedMLP,"(64,)",0.3,38,300,0.1,0.972382,0.982853

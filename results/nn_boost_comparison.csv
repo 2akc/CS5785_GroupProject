@@ -1,0 +1,8 @@
+model,train_auroc,val_auroc,fit_s
+single MLP,0.9980218125000001,0.9714860000000001,8519.0
+boosted MLP,1.0,0.972382,8545.4
+boosted MLP + blank-line push,1.0,0.982853,8545.4
+robust_svm_tuned (saved),,0.978571,
+robust_svm_tuned_blank (saved),,0.9905309999999999,
+"rank average: SVM + boosted MLP, no blank push",,0.9790115,
+rank average: SVM blank + boosted MLP blank,,0.989361,
