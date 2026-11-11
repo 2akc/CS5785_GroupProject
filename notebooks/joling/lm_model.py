@@ -17,12 +17,20 @@ from src.evaluate import rank_average
 from src.features import normalize_style
 
 from lm_features import FEATURES, load_cached
+from repetition_features import RP_FEATURES, WORD_FEATURES
+from repetition_features import cache_path as _rep_path
+from repetition_features import load_cached as _load_rep
 
 
 @lru_cache(maxsize=4)
 def _feature_table(model_name: str) -> pd.DataFrame:
-    """Cached features indexed by the layout-free text they were computed from."""
+    """Cached features indexed by the layout-free text they were computed from.
+
+    Holds the 24 predictability features and, when that cache exists, the repetition
+    features from ``repetition_features.py`` as extra columns."""
     feats = load_cached(model_name)
+    if _rep_path(model_name).exists():
+        feats = feats.join(_load_rep(model_name).drop(columns="file"))
     texts = pd.concat([load_train(verbose=False), load_unlabeled(verbose=False), load_test(verbose=False)])
     table = feats.loc[texts[ID_COL]].copy()
     table.index = texts[TEXT_COL].map(normalize_style).to_numpy()
@@ -37,6 +45,8 @@ class CachedLMFeatures(BaseEstimator, TransformerMixin):
     text gets the same features with or without its line breaks.
     """
 
+    # ``columns`` defaults to the 24 predictability features. Pass e.g.
+    # ``FEATURES + RP_FEATURES`` to add the repetition-penalty features.
     def __init__(self, columns=None, model_name: str = "gpt2"):
         self.columns, self.model_name = columns, model_name
 

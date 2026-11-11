@@ -134,3 +134,25 @@ def plot_weight_curve(weights, scores, chosen: float):
     ax.grid(axis="x", visible=False)
     fig.tight_layout()
     return fig
+
+
+def plot_feature_by_group(features: pd.DataFrame, groups, columns: list[str], titles: list[str] | None = None,
+                          order: list[str] | None = None):
+    """Like ``plot_feature_by_class`` but for up to three named groups (fixed colour per position)."""
+    groups = np.asarray(groups)
+    order = order or sorted(set(groups))
+    colours = [BLUE, ORANGE, AQUA]
+    fig, axes = plt.subplots(1, len(columns), figsize=(4.3 * len(columns), 3.2), facecolor=SURFACE, squeeze=False)
+    for ax, col, title in zip(axes[0], columns, titles or columns):
+        lo, hi = np.percentile(features[col], [0.5, 99.5])
+        bins = np.linspace(lo, hi, 40)
+        for name, colour in zip(order, colours):
+            ax.hist(features[col][groups == name], bins=bins, density=True, histtype="stepfilled", alpha=0.3,
+                    color=colour, edgecolor=colour, linewidth=1.6, label=name)
+        ax.set_title(title, loc="left", fontsize=10, color=INK)
+        ax.set_yticks([])
+        _clean(ax)
+        ax.grid(False)
+    axes[0][-1].legend(frameon=False, fontsize=8.5, labelcolor=SECONDARY, loc="upper right")
+    fig.tight_layout()
+    return fig
