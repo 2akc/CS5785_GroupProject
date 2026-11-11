@@ -41,7 +41,7 @@ Other outputs go to `results/joling_*.csv`, `results/preds_joling_*.csv` and `fi
 | Language-model classifier | 0.979 | 0.976 | 0.914 |
 | Blend: SVM + language-model classifier (weight 0.6) | 0.993 | 0.987 | 0.936 |
 | Blend: SVM + blank-line boost + language-model classifier | 0.995 | 0.987 | **0.941** |
-| `03`: classifier with repetition features | 0.991 | 0.988 | not uploaded yet |
+| `03`: classifier with repetition features | 0.991 | 0.988 | 0.937 |
 | `03`: blend, SVM + new classifier (weight 0.8) | 0.995 | 0.991 | not uploaded yet |
 | `03`: blend, SVM + blank-line boost + new classifier | 0.996 | 0.991 | not uploaded yet |
 
