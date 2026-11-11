@@ -18,6 +18,7 @@ from .config import SEED
 from .evaluate import auroc, predict_proba1
 from .features import (FitWithExtraText, StylometricFeatures, build_features, format_flags,
                        has_blank_line_breaks, line_break_style, normalize_ws, robust_features)
+from .lm_model import ALL_LM_FEATURES, RankBlend, lm_linear_plus_trees
 
 
 def _logreg(C=1.0):
@@ -181,6 +182,14 @@ MODELS = {
     # + robust stylometric features. Most stable when 20% of AI val texts are reformatted.
     "stack_format_stylo": lambda: FormatStacker(MODELS["robust_svm_tuned"](), C=0.1, blank_scale=1.0,
                                                 extras=("stylo",)),
+    # Language-model classifier: logistic regression + 10 bagged boosted-tree models on 87 cached
+    # features that measure how predictable a text is to GPT-2 / SmolLM2-360M and how much it
+    # repeats itself (src/lm_features.py, repetition_features.py, lm_onepass.py). Kaggle 0.955.
+    "lm_classifier": lambda: lm_linear_plus_trees(columns=ALL_LM_FEATURES),
+    # FINAL MODEL: rank average of the tuned SVM + blank-line boost (0.2) and the language-model
+    # classifier (0.8). Val 0.997, Kaggle public 0.963. See notebooks/joling/ for how it was built.
+    "lm_svm_blend": lambda: RankBlend(MODELS["robust_svm_tuned_blank"](),
+                                      lm_linear_plus_trees(columns=ALL_LM_FEATURES), lm_weight=0.8),
 }
 
 

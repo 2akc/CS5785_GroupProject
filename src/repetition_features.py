@@ -2,7 +2,7 @@
 
 Many text generators are run with a repetition penalty: a setting that pushes the model
 away from tokens it has already used. The result reads less smoothly, so the
-predictability features in ``lm_features.py`` take it for human writing. But it leaves a
+predictability features in ``src/lm_features.py`` take it for human writing. But it leaves a
 different trace: the text repeats itself LESS than natural writing does.
 
 Two sets of features:
@@ -15,14 +15,14 @@ Two sets of features:
   Human text roughly matches the expectation; text written under a repetition penalty
   repeats far less than expected.
 
-Run once to compute and cache both sets for every file (about 30 minutes, resumable):
+Run once, from the repo root, to compute and cache both sets for every file (about 30
+minutes, resumable):
 
-    python notebooks/joling/repetition_features.py   # writes results/joling_repetition_features_gpt2.csv
+    python -m src.repetition_features   # writes results/joling_repetition_features_gpt2.csv
 """
 from __future__ import annotations
 
 import re
-import sys
 import time
 import zlib
 from collections import Counter
@@ -32,15 +32,9 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-ROOT = Path(__file__).resolve().parents[2]
-for p in (str(ROOT), str(Path(__file__).resolve().parent)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
-
-from src.config import ID_COL, RESULTS_DIR, TEXT_COL  # noqa: E402
-from src.features import normalize_style  # noqa: E402
-
-from lm_features import MAX_TOKENS, _batches, load_models  # noqa: E402
+from .config import ID_COL, RESULTS_DIR, ROOT, TEXT_COL
+from .features import normalize_style
+from .lm_features import MAX_TOKENS, _batches, load_models
 
 WORD_FEATURES = [
     "ttr", "mattr50", "hapax_share", "repeat_w10", "repeat_w50", "content_ttr", "content_repeat_w50",
@@ -174,13 +168,13 @@ def cache_path(model_name: str = "gpt2") -> Path:
 def load_cached(model_name: str = "gpt2") -> pd.DataFrame:
     path = cache_path(model_name)
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run:  python notebooks/joling/repetition_features.py")
+        raise FileNotFoundError(f"{path} not found. Run:  python -m src.repetition_features")
     return pd.read_csv(path).set_index(ID_COL)
 
 
 def build_cache(model_name: str = "gpt2", limit: int | None = None, chunk: int = 1000):
     """Both feature sets for train / unlabeled / test, saved every ``chunk`` texts (resumable)."""
-    from src.data import load_test, load_train, load_unlabeled
+    from .data import load_test, load_train, load_unlabeled
 
     path = cache_path(model_name) if not limit else cache_path(model_name).with_suffix(".sample.csv")
     done_ids = set(pd.read_csv(path, usecols=[ID_COL])[ID_COL]) if path.exists() else set()

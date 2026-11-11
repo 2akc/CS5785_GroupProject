@@ -7,6 +7,7 @@ Examples
     python predict.py --model baseline --vocab-unlabeled --pseudo-threshold 0.9 --pseudo-rounds 2
     python predict.py --ensemble baseline logreg_char             # rank-average saved preds
     python predict.py --ensemble                                 # all results/preds_*.csv
+    python predict.py --model lm_svm_blend --split-order         # FINAL MODEL (Kaggle public 0.963)
 
 ``--model`` retrains the named pipeline from src/models.py on ALL of train.csv (optionally
 plus pseudo-labelled unlabeled.csv) and predicts test.csv. ``--ensemble`` needs no training:
@@ -18,9 +19,10 @@ import argparse
 import sys
 import time
 
+import pandas as pd
 
 from src.config import ID_COL, LABEL_COL, set_seed
-from src.data import load_test, load_train, load_unlabeled
+from src.data import get_split, load_test, load_train, load_unlabeled
 from src.evaluate import (
     auroc,
     list_predictions,
@@ -33,7 +35,13 @@ from src.models import MODELS, make_model, self_train
 
 
 def run_model(args, test):
-    train = load_train(clean=not args.no_clean, quick=args.quick)
+    if args.split_order:
+        # Same rows, in the order the notebooks use: shared training split, then validation split.
+        # Models with bootstrap sampling (lm_classifier, lm_svm_blend) need this to rebuild the
+        # uploaded file exactly; for the others the order makes no practical difference.
+        train = pd.concat(get_split(quick=args.quick, clean=not args.no_clean, verbose=False), ignore_index=True)
+    else:
+        train = load_train(clean=not args.no_clean, quick=args.quick)
     extra = None
     unl = None
     if args.vocab_unlabeled or args.pseudo_threshold:
@@ -95,6 +103,8 @@ def main(argv=None):
     ap.add_argument("--pseudo-balance", action="store_true", help="add equal numbers of each class")
     ap.add_argument("--no-clean", action="store_true", help="use raw text (no light cleaning)")
     ap.add_argument("--quick", action="store_true", help="train on train_starter_2000.csv (debug)")
+    ap.add_argument("--split-order", action="store_true",
+                    help="order the training rows as train split + val split (as in the notebooks)")
     ap.add_argument("--tag", default="", help="suffix for the submission filename")
     args = ap.parse_args(argv)
 

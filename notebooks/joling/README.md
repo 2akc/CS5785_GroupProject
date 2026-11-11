@@ -5,7 +5,10 @@ that are not in `train.csv`.
 
 Rules followed here:
 - Same shared split as the rest of the team (`src.data.get_split()`, 8,000 train / 2,000 val, seed 42).
-- Nothing in `src/` is modified; all new code lives in this folder.
+- The experiments were developed in this folder without touching `src/`. Once the approach was chosen as the team's
+  final model, its feature and model code was moved to `src/` (`lm_features.py`, `repetition_features.py`,
+  `lm_onepass.py`, `lm_model.py`) and registered in `src/models.py` as `lm_classifier` and `lm_svm_blend`.
+  The stress-test and plotting helpers used only by these notebooks stay here.
 
 | File | What it is |
 |---|---|
@@ -15,12 +18,8 @@ Rules followed here:
 | `04_unseen_ai_kind.ipynb` | A third stress test: hide one kind of AI text. Compares classifier designs on it, re-chooses the blend weight, writes the current best Kaggle files. About 12 minutes. |
 | `05_newer_language_model.ipynb` | Recomputes the features with SmolLM2-360M (2024) and compares GPT-2, SmolLM2 and both. Writes the current best Kaggle files. About 10 minutes. |
 | `06_report_experiments.ipynb` | Numbers for the report with the final model: learning curve (Q2), train vs validation (Q4.1), subgroups (Q4.2), false positives / negatives (Q4.3). About 3 minutes. |
-| `make_submission.py` | **One command that rebuilds the final Kaggle file** from the cached features (about 2 minutes). |
-| `lm_onepass.py` | The same features in one pass, for any small GPT-style model. `python notebooks/joling/lm_onepass.py` rebuilds the SmolLM2 cache (about 50 minutes, resumable). |
+| `make_submission.py` | Rebuilds the final Kaggle file and its two variants from the cached features. The selected file is also rebuilt by `python predict.py --model lm_svm_blend --split-order`. |
 | `kind_eval.py` | `AIKinds` (unsupervised groups of AI texts) and the unseen-kind stress test. |
-| `repetition_features.py` | Word-count and GPT-2 repetition features. `python notebooks/joling/repetition_features.py` rebuilds the cache (about 30 minutes, resumable). |
-| `lm_features.py` | Computes the 24 language-model features. `python notebooks/joling/lm_features.py` rebuilds the cache (about 30 minutes, resumable). |
-| `lm_model.py` | Classifiers on the cached features and rank blending. |
 | `domain_eval.py` | `TopicDomains` (unsupervised topic groups) and `domain_stress_test` (the four validation numbers). |
 | `plots.py` | Chart helpers. |
 | `requirements-extra.txt` | `torch` and `transformers`, needed only to rebuild the feature cache. |
@@ -28,25 +27,26 @@ Rules followed here:
 ## Rebuild the final submission
 ```bash
 pip install -r requirements.txt
-python notebooks/joling/make_submission.py                 # selected file, Kaggle public 0.963
+python predict.py --model lm_svm_blend --split-order        # selected file, Kaggle public 0.963 (team entry point)
+python notebooks/joling/make_submission.py                 # the same file
 python notebooks/joling/make_submission.py --variant tf    # second selected file (+ DistilRoBERTa), public 0.961
 python notebooks/joling/make_submission.py --variant smol  # runner-up (SmolLM2 features only), public 0.958
 ```
-Writes `submissions/submission_<time>_joling_final*.csv`. The first and third commands reproduce the uploaded files
-exactly; the second matches the uploaded file to within 0.0004 (the upload was built from predictions rounded to six
+Writes `submissions/submission_<time>_*.csv`. The first two commands and the `smol` variant reproduce the uploaded
+files exactly; the `tf` variant matches the uploaded file to within 0.0004 (the upload was built from predictions rounded to six
 decimals). Seed 42; only the committed feature caches are needed, not `torch`.
 
 ## Reproduce everything
 ```bash
 pip install -r requirements.txt
 pip install -r notebooks/joling/requirements-extra.txt -c requirements.txt   # only to rebuild the cache
-python notebooks/joling/lm_features.py                                       # optional: results/joling_lm_features_gpt2.csv is committed
+python -m src.lm_features                                                    # optional: results/joling_lm_features_gpt2.csv is committed
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/01_domain_yardstick.ipynb
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/02_lm_predictability.ipynb
-python notebooks/joling/repetition_features.py                               # optional: the cache is committed
+python -m src.repetition_features                                            # optional: the cache is committed
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/03_repetition_fingerprint.ipynb   # needs the outputs of 02
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/04_unseen_ai_kind.ipynb          # needs the outputs of 02
-python notebooks/joling/lm_onepass.py                                        # optional: the cache is committed
+python -m src.lm_onepass                                                     # optional: the cache is committed
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/05_newer_language_model.ipynb   # needs the outputs of 02 and 04
 ```
 Notebook `02` writes `submissions/submission_<time>_joling_{lm,blend,blend_blank}.csv`; notebook `03` writes

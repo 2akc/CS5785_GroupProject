@@ -8,30 +8,23 @@ Output columns: the 22 predictability features that need only one model (everyth
 ``lm_features.FEATURES`` except the two Binoculars-style ones) plus the 11
 ``repetition_features.RP_FEATURES``.
 
-    python notebooks/joling/lm_onepass.py --model HuggingFaceTB/SmolLM2-360M
+    python -m src.lm_onepass --model HuggingFaceTB/SmolLM2-360M      # from the repo root
     # writes results/joling_onepass_features_SmolLM2-360M.csv  (about 50 minutes, resumable)
 
 The model runs on this laptop with its published weights; nothing is fine-tuned.
 """
 from __future__ import annotations
 
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-for p in (str(ROOT), str(Path(__file__).resolve().parent)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
-
-from src.config import ID_COL, RESULTS_DIR, TEXT_COL  # noqa: E402
-from src.features import normalize_style  # noqa: E402
-
-from lm_features import FEATURES, MAX_TOKENS, _batches, _device, _summarise  # noqa: E402
-from repetition_features import RP_FEATURES  # noqa: E402
+from .config import ID_COL, RESULTS_DIR, ROOT, TEXT_COL
+from .features import normalize_style
+from .lm_features import FEATURES, MAX_TOKENS, _batches, _device, _summarise
+from .repetition_features import RP_FEATURES
 
 ONEPASS_FEATURES = [f for f in FEATURES if f not in ("xent_mean", "binoculars")] + RP_FEATURES
 DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-360M"
@@ -118,14 +111,14 @@ def load_cached(model_name: str = DEFAULT_MODEL, prefix: str | None = None) -> p
     so features from two language models can sit in one table."""
     path = cache_path(model_name)
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run:  python notebooks/joling/lm_onepass.py --model {model_name}")
+        raise FileNotFoundError(f"{path} not found. Run:  python -m src.lm_onepass --model {model_name}")
     df = pd.read_csv(path).set_index(ID_COL).drop(columns="file")
     return df.add_prefix(prefix) if prefix else df
 
 
 def build_cache(model_name: str = DEFAULT_MODEL, limit: int | None = None, chunk: int = 500):
     """Features for train / unlabeled / test, saved every ``chunk`` texts (resumable)."""
-    from src.data import load_test, load_train, load_unlabeled
+    from .data import load_test, load_train, load_unlabeled
 
     path = cache_path(model_name) if not limit else cache_path(model_name).with_suffix(".sample.csv")
     done_ids = set(pd.read_csv(path, usecols=[ID_COL])[ID_COL]) if path.exists() else set()

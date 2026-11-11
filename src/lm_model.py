@@ -11,21 +11,23 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from src.config import ID_COL, SEED, TEXT_COL
-from src.data import load_test, load_train, load_unlabeled
-from src.evaluate import rank_average
-from src.features import normalize_style
-
-from lm_features import FEATURES, load_cached
-from repetition_features import RP_FEATURES, WORD_FEATURES
-from repetition_features import cache_path as _rep_path
-from repetition_features import load_cached as _load_rep
-from lm_onepass import ONEPASS_FEATURES
-from lm_onepass import cache_path as _onepass_path
-from lm_onepass import load_cached as _load_onepass
+from .config import ID_COL, SEED, TEXT_COL
+from .data import load_test, load_train, load_unlabeled
+from .evaluate import predict_proba1, rank_average
+from .features import normalize_style
+from .lm_features import FEATURES, load_cached
+from .lm_onepass import ONEPASS_FEATURES
+from .lm_onepass import cache_path as _onepass_path
+from .lm_onepass import load_cached as _load_onepass
+from .repetition_features import RP_FEATURES, WORD_FEATURES
+from .repetition_features import cache_path as _rep_path
+from .repetition_features import load_cached as _load_rep
 
 # The same predictability + repetition features, computed by SmolLM2-360M instead of GPT-2.
 SMOL_FEATURES = ["smol_" + f for f in ONEPASS_FEATURES]
+# Everything the final classifier uses: GPT-2 predictability + GPT-2 repetition + word-count
+# repetition + the SmolLM2 versions (87 features).
+ALL_LM_FEATURES = FEATURES + RP_FEATURES + WORD_FEATURES + SMOL_FEATURES
 
 
 @lru_cache(maxsize=4)
@@ -33,7 +35,7 @@ def _feature_table(model_name: str) -> pd.DataFrame:
     """Cached features indexed by the layout-free text they were computed from.
 
     Holds the 24 predictability features and, when that cache exists, the repetition
-    features from ``repetition_features.py`` as extra columns."""
+    features from ``src/repetition_features.py`` as extra columns."""
     feats = load_cached(model_name)
     if _rep_path(model_name).exists():
         feats = feats.join(_load_rep(model_name).drop(columns="file"))
@@ -49,7 +51,7 @@ class CachedLMFeatures(BaseEstimator, TransformerMixin):
     """Text -> its precomputed language-model features (a lookup, nothing is learned).
 
     Computing the features takes about 0.1 s per text, so they are computed once by
-    ``lm_features.py`` and looked up here. The lookup key is the layout-free text, so a
+    ``src/lm_features.py`` and looked up here. The lookup key is the layout-free text, so a
     text gets the same features with or without its line breaks.
     """
 
@@ -66,7 +68,7 @@ class CachedLMFeatures(BaseEstimator, TransformerMixin):
         keys = [normalize_style(t) for t in X]
         missing = [k for k in keys if k not in table.index]
         if missing:
-            raise KeyError(f"{len(missing)} texts have no cached features; run lm_features.py on them first")
+            raise KeyError(f"{len(missing)} texts have no cached features; run `python -m src.lm_features` on them first")
         return table.loc[keys, list(self.columns or FEATURES)].to_numpy()
 
     def get_feature_names_out(self, input_features=None):
@@ -157,3 +159,27 @@ class LinearPlusTrees(BaseEstimator):
 def lm_linear_plus_trees(columns=None, C: float = 1.0, n_models: int = 10, model_name: str = "gpt2") -> Pipeline:
     """Text -> cached features -> ``LinearPlusTrees``."""
     return Pipeline([("lm", CachedLMFeatures(columns, model_name)), ("clf", LinearPlusTrees(C=C, n_models=n_models))])
+
+
+class RankBlend(BaseEstimator):
+    """Weighted rank average of a text model and a language-model classifier.
+
+    ``lm_weight`` is the weight of the language-model classifier (0.8 was chosen on training
+    rows in notebooks/joling/05_newer_language_model.ipynb). Ranks are taken within the
+    texts passed to ``predict_proba``, so score a whole set (e.g. all of test.csv) in one call.
+    """
+
+    def __init__(self, text_model, lm_model, lm_weight: float = 0.8):
+        self.text_model, self.lm_model, self.lm_weight = text_model, lm_model, lm_weight
+
+    def fit(self, X, y):
+        from sklearn.base import clone
+        self.text_model_ = clone(self.text_model).fit(X, y)
+        self.lm_model_ = clone(self.lm_model).fit(X, y)
+        self.classes_ = np.array([0, 1])
+        return self
+
+    def predict_proba(self, X):
+        X = list(X)
+        p = blend(predict_proba1(self.text_model_, X), predict_proba1(self.lm_model_, X), self.lm_weight)
+        return np.column_stack([1 - p, p])

@@ -11,8 +11,14 @@ Pipeline (see notebooks 02-05 for how each choice was made):
   3. Weighted rank average of the two. The weight was chosen on training rows in notebook 05.
 Both models are trained on all 10,000 labelled rows; seed 42 everywhere.
 
-Needs the feature caches in ``results/`` (committed). They are rebuilt by ``lm_features.py``,
-``repetition_features.py`` and ``lm_onepass.py``.
+Needs the feature caches in ``results/`` (committed). They are rebuilt by ``src/lm_features.py``,
+``src/repetition_features.py`` and ``src/lm_onepass.py``.
+
+The selected submission can also be rebuilt with the team's entry point:
+
+    python predict.py --model lm_svm_blend --split-order
+
+This script is kept for the two other variants below.
 """
 from __future__ import annotations
 
@@ -34,9 +40,9 @@ from src.evaluate import predict_proba1, rank_average, write_submission  # noqa:
 from src.features import has_blank_line_breaks  # noqa: E402
 from src.models import make_model  # noqa: E402
 
-from lm_features import FEATURES  # noqa: E402
-from lm_model import SMOL_FEATURES, blend, lm_linear_plus_trees  # noqa: E402
-from repetition_features import RP_FEATURES, WORD_FEATURES  # noqa: E402
+from src.lm_features import FEATURES  # noqa: E402
+from src.lm_model import SMOL_FEATURES, blend, lm_linear_plus_trees  # noqa: E402
+from src.repetition_features import RP_FEATURES, WORD_FEATURES  # noqa: E402
 
 FEATURE_SETS = {
     "final": FEATURES + RP_FEATURES + WORD_FEATURES + SMOL_FEATURES,   # GPT-2 + SmolLM2 (87 features)
