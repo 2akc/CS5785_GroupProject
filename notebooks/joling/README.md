@@ -49,12 +49,13 @@ without the topic (domain) or without the kind of AI text it is tested on.
 | `robust_svm_tuned` | 0.979 | 0.933 | 0.961 | not recorded (0.913 with the blank-line boost) |
 | `02` classifier: trees on 24 predictability features | 0.979 | 0.976 | 0.925 | 0.914 |
 | `03` classifier: + repetition features (54) | 0.991 | 0.988 | 0.971 | 0.937 |
-| `04` classifier: linear + bagged trees (54) | 0.989 | 0.987 | 0.982 | not uploaded yet |
+| `04` classifier: linear + bagged trees (54) | 0.989 | 0.987 | 0.982 | not uploaded |
 | `02` blend: SVM + `02` classifier (weight 0.6) | 0.993 | 0.987 | 0.975 | 0.936 (0.941 with the blank-line boost) |
-| `04` blend: SVM + `04` classifier (weight 0.8) | 0.993 | 0.990 | 0.988 | not uploaded yet |
-| `05` classifier: GPT-2 + SmolLM2 features (87) | 0.994 | 0.992 | 0.988 | not uploaded yet |
+| `04` blend: SVM + `04` classifier (weight 0.8) | 0.993 | 0.990 | 0.988 | not uploaded |
+| `05` classifier: GPT-2 + SmolLM2 features (87) | 0.994 | 0.992 | 0.988 | 0.955 |
 | `05` blend: SVM + `05` classifier (weight 0.8) | 0.997 | 0.993 | 0.992 | **0.963** with the blank-line boost |
 | `05` runner-up blend: SVM + SmolLM2-only classifier (weight 0.8) | 0.996 | not run | not run | 0.958 with the blank-line boost |
+| `05` blend + Aidan's DistilRoBERTa (weight 0.2) | 0.998 | not run | not run | 0.961 |
 
 Kaggle public scores (900 test rows) are listed in `results/joling_kaggle_public.csv`.
 Current best files: `submissions/submission_<time>_joling_{lm_05,blend_05_blank}.csv`, written by notebook `05`.
