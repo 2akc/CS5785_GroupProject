@@ -1,0 +1,10 @@
+submission,description,kaggle_public_auroc,uploaded,source
+submission_20261110_183613_joling_lm.csv,language-model classifier alone (boosted trees on 24 GPT-2 features),0.91396,2026-11-10,Kaggle submissions page
+submission_20261110_183613_joling_blend.csv,rank blend: robust_svm_tuned (0.4) + language-model classifier (0.6),0.93600,2026-11-10,Kaggle submissions page
+submission_20261110_183613_joling_blend_blank.csv,rank blend: robust_svm_tuned_blank (0.4) + language-model classifier (0.6),0.94050,2026-11-10,Kaggle submissions page
+submission_20261110_213132_joling_lm_rp.csv,classifier alone with repetition features (54 features; notebook 03),0.93716,2026-11-10,Kaggle submissions page
+submission_20261111_120314_joling_blend_05_blank.csv,rank blend: robust_svm_tuned_blank (0.2) + classifier on GPT-2 and SmolLM2 features (0.8); notebook 05,0.96311,2026-11-11,Kaggle submissions page
+submission_20261111_121439_joling_blend_05_smol_blank.csv,rank blend: robust_svm_tuned_blank (0.2) + classifier on SmolLM2 features only (0.8),0.95830,2026-11-11,Kaggle submissions page
+(team reference) baseline,word+char TF-IDF + logistic regression,0.860,,team notes
+(team reference) robust_svm_tuned_blank,Allen's tuned SVM + blank-line boost,0.91328,,team notes
+(team reference) svm_blank + transformer,Aidan's rank average of SVM and DistilRoBERTa,0.91475,,team notes

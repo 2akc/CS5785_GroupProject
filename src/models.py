@@ -16,8 +16,8 @@ from sklearn.svm import LinearSVC
 
 from .config import SEED
 from .evaluate import auroc, predict_proba1
-from .features import (FitWithExtraText, build_features, has_blank_line_breaks, normalize_ws,
-                       robust_features)
+from .features import (FitWithExtraText, StylometricFeatures, build_features, format_flags,
+                       has_blank_line_breaks, line_break_style, normalize_ws, robust_features)
 
 
 def _logreg(C=1.0):
@@ -63,6 +63,55 @@ class BlankLineBoost(BaseEstimator):
         b = np.array([has_blank_line_breaks(t) for t in X], dtype=float)
         p = (predict_proba1(self.estimator_, X) + self.push * b) / (1 + self.push)
         return np.column_stack([1 - p, p])
+
+
+class FormatStacker(BaseEstimator):
+    """Stacking: LogReg on [out-of-fold text-model score, raw formatting flags].
+
+    The text model only sees normalized text, so formatting enters through this small,
+    regularized second stage. ``blank_scale`` < 1 shrinks the blank-line weight after
+    fitting, as a hedge: it's a perfect separator in train but not in test (BBC, old poems).
+    """
+
+    def __init__(self, estimator, C: float = 0.1, blank_scale: float = 0.5, folds: int = 5,
+                 extras: tuple = ()):
+        self.estimator, self.C, self.blank_scale, self.folds = estimator, C, blank_scale, folds
+        self.extras = extras  # extra side features: "breaks", "stylo" (all side features then standardized)
+
+    def _raw_side(self, X):
+        parts = [format_flags(X)]
+        if "breaks" in self.extras:
+            parts.append(line_break_style(X))
+        if "stylo" in self.extras:
+            parts.append(StylometricFeatures(robust=True).transform(X))
+        return np.hstack(parts)
+
+    def _side(self, X):
+        F = self._raw_side(X)
+        return self.scaler_.transform(F) if self.extras else F
+
+    def fit(self, X, y):
+        from sklearn.model_selection import StratifiedKFold
+        from sklearn.preprocessing import StandardScaler
+        X, y = pd.Series(list(X)), np.asarray(y)
+        oof = np.zeros(len(y))
+        for a, b in StratifiedKFold(self.folds, shuffle=True, random_state=SEED).split(X, y):
+            oof[b] = _margin(clone(self.estimator).fit(X.iloc[a], y[a]), X.iloc[b])
+        self.estimator_ = clone(self.estimator).fit(X, y)
+        if self.extras:
+            self.scaler_ = StandardScaler().fit(self._raw_side(X))
+        self.stack_ = LogisticRegression(C=self.C, max_iter=3000).fit(np.c_[oof, self._side(X)], y)
+        self.stack_.coef_[0, 1] *= self.blank_scale   # column 1 = blank_line_breaks
+        self.classes_ = self.stack_.classes_
+        return self
+
+    def predict_proba(self, X):
+        X = list(X)
+        return self.stack_.predict_proba(np.c_[_margin(self.estimator_, X), self._side(X)])
+
+
+def _margin(model, X):
+    return model.decision_function(X) if hasattr(model, "decision_function") else predict_proba1(model, X)
 
 
 def _char_ws(**kw):
@@ -122,6 +171,16 @@ MODELS = {
         ("clf", LinearSVC(C=3.0))]),
     # Best Kaggle model + soft boost for blank-line paragraph breaks.
     "robust_svm_tuned_blank": lambda: BlankLineBoost(MODELS["robust_svm_tuned"](), push=0.1),
+    # Stacked: SVM score + 10 formatting flags (blank-line weight halved as a hedge).
+    "stack_format": lambda: FormatStacker(MODELS["robust_svm_tuned"](), C=0.1, blank_scale=0.5),
+    # Same, full learned blank-line weight (less hedged).
+    "stack_format_full": lambda: FormatStacker(MODELS["robust_svm_tuned"](), C=0.01, blank_scale=1.0),
+    # + line-break style (none / single / count). Best clean val; single breaks lean human.
+    "stack_format_breaks": lambda: FormatStacker(MODELS["robust_svm_tuned"](), C=0.1, blank_scale=1.0,
+                                                 extras=("breaks",)),
+    # + robust stylometric features. Most stable when 20% of AI val texts are reformatted.
+    "stack_format_stylo": lambda: FormatStacker(MODELS["robust_svm_tuned"](), C=0.1, blank_scale=1.0,
+                                                extras=("stylo",)),
 }
 
 
