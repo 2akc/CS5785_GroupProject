@@ -20,6 +20,12 @@ from lm_features import FEATURES, load_cached
 from repetition_features import RP_FEATURES, WORD_FEATURES
 from repetition_features import cache_path as _rep_path
 from repetition_features import load_cached as _load_rep
+from lm_onepass import ONEPASS_FEATURES
+from lm_onepass import cache_path as _onepass_path
+from lm_onepass import load_cached as _load_onepass
+
+# The same predictability + repetition features, computed by SmolLM2-360M instead of GPT-2.
+SMOL_FEATURES = ["smol_" + f for f in ONEPASS_FEATURES]
 
 
 @lru_cache(maxsize=4)
@@ -31,6 +37,8 @@ def _feature_table(model_name: str) -> pd.DataFrame:
     feats = load_cached(model_name)
     if _rep_path(model_name).exists():
         feats = feats.join(_load_rep(model_name).drop(columns="file"))
+    if _onepass_path().exists():                       # second language model (SmolLM2), columns prefixed "smol_"
+        feats = feats.join(_load_onepass(prefix="smol_"))
     texts = pd.concat([load_train(verbose=False), load_unlabeled(verbose=False), load_test(verbose=False)])
     table = feats.loc[texts[ID_COL]].copy()
     table.index = texts[TEXT_COL].map(normalize_style).to_numpy()

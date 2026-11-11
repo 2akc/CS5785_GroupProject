@@ -13,6 +13,8 @@ Rules followed here:
 | `02_lm_predictability.ipynb` | Classifier on GPT-2 "predictability" features, blended with `robust_svm_tuned`. Writes three Kaggle files. About 12 minutes (uses the cached features). |
 | `03_repetition_fingerprint.ipynb` | Finds the weak spot of `02` (AI text that avoids repeating itself), adds repetition features, re-blends. Writes three more Kaggle files. About 3 minutes (uses cached features and scores). |
 | `04_unseen_ai_kind.ipynb` | A third stress test: hide one kind of AI text. Compares classifier designs on it, re-chooses the blend weight, writes the current best Kaggle files. About 12 minutes. |
+| `05_newer_language_model.ipynb` | Recomputes the features with SmolLM2-360M (2024) and compares GPT-2, SmolLM2 and both. Writes the current best Kaggle files. About 10 minutes. |
+| `lm_onepass.py` | The same features in one pass, for any small GPT-style model. `python notebooks/joling/lm_onepass.py` rebuilds the SmolLM2 cache (about 50 minutes, resumable). |
 | `kind_eval.py` | `AIKinds` (unsupervised groups of AI texts) and the unseen-kind stress test. |
 | `repetition_features.py` | Word-count and GPT-2 repetition features. `python notebooks/joling/repetition_features.py` rebuilds the cache (about 30 minutes, resumable). |
 | `lm_features.py` | Computes the 24 language-model features. `python notebooks/joling/lm_features.py` rebuilds the cache (about 30 minutes, resumable). |
@@ -31,6 +33,8 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/joling/02_lm_predi
 python notebooks/joling/repetition_features.py                               # optional: the cache is committed
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/03_repetition_fingerprint.ipynb   # needs the outputs of 02
 jupyter nbconvert --to notebook --execute --inplace notebooks/joling/04_unseen_ai_kind.ipynb          # needs the outputs of 02
+python notebooks/joling/lm_onepass.py                                        # optional: the cache is committed
+jupyter nbconvert --to notebook --execute --inplace notebooks/joling/05_newer_language_model.ipynb   # needs the outputs of 02 and 04
 ```
 Notebook `02` writes `submissions/submission_<time>_joling_{lm,blend,blend_blank}.csv`; notebook `03` writes
 `submissions/submission_<time>_joling_{lm_rp,blend_rp,blend_rp_blank}.csv`.
@@ -48,9 +52,11 @@ without the topic (domain) or without the kind of AI text it is tested on.
 | `04` classifier: linear + bagged trees (54) | 0.989 | 0.987 | 0.982 | not uploaded yet |
 | `02` blend: SVM + `02` classifier (weight 0.6) | 0.993 | 0.987 | 0.975 | 0.936 (0.941 with the blank-line boost) |
 | `04` blend: SVM + `04` classifier (weight 0.8) | 0.993 | 0.990 | 0.988 | not uploaded yet |
+| `05` classifier: GPT-2 + SmolLM2 features (87) | 0.994 | 0.992 | 0.988 | not uploaded yet |
+| `05` blend: SVM + `05` classifier (weight 0.8) | 0.997 | 0.993 | 0.992 | not uploaded yet |
 
 Kaggle public scores (900 test rows) are listed in `results/joling_kaggle_public.csv`.
-Current best files: `submissions/submission_<time>_joling_{lm_04,blend_04_blank}.csv`, written by notebook `04`.
+Current best files: `submissions/submission_<time>_joling_{lm_05,blend_05_blank}.csv`, written by notebook `05`.
 
-The pretrained GPT-2 and distilgpt2 weights are used as fixed feature extractors on the laptop; no API is called
-and no weights are fine-tuned.
+The pretrained GPT-2, distilgpt2 and SmolLM2-360M weights are used as fixed feature extractors on the laptop;
+no API is called and no weights are fine-tuned.
