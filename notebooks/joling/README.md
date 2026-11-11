@@ -14,6 +14,7 @@ Rules followed here:
 | `03_repetition_fingerprint.ipynb` | Finds the weak spot of `02` (AI text that avoids repeating itself), adds repetition features, re-blends. Writes three more Kaggle files. About 3 minutes (uses cached features and scores). |
 | `04_unseen_ai_kind.ipynb` | A third stress test: hide one kind of AI text. Compares classifier designs on it, re-chooses the blend weight, writes the current best Kaggle files. About 12 minutes. |
 | `05_newer_language_model.ipynb` | Recomputes the features with SmolLM2-360M (2024) and compares GPT-2, SmolLM2 and both. Writes the current best Kaggle files. About 10 minutes. |
+| `make_submission.py` | **One command that rebuilds the final Kaggle file** from the cached features (about 2 minutes). |
 | `lm_onepass.py` | The same features in one pass, for any small GPT-style model. `python notebooks/joling/lm_onepass.py` rebuilds the SmolLM2 cache (about 50 minutes, resumable). |
 | `kind_eval.py` | `AIKinds` (unsupervised groups of AI texts) and the unseen-kind stress test. |
 | `repetition_features.py` | Word-count and GPT-2 repetition features. `python notebooks/joling/repetition_features.py` rebuilds the cache (about 30 minutes, resumable). |
@@ -23,7 +24,18 @@ Rules followed here:
 | `plots.py` | Chart helpers. |
 | `requirements-extra.txt` | `torch` and `transformers`, needed only to rebuild the feature cache. |
 
-## Reproduce
+## Rebuild the final submission
+```bash
+pip install -r requirements.txt
+python notebooks/joling/make_submission.py                 # selected file, Kaggle public 0.963
+python notebooks/joling/make_submission.py --variant tf    # second selected file (+ DistilRoBERTa), public 0.961
+python notebooks/joling/make_submission.py --variant smol  # runner-up (SmolLM2 features only), public 0.958
+```
+Writes `submissions/submission_<time>_joling_final*.csv`. The first and third commands reproduce the uploaded files
+exactly; the second matches the uploaded file to within 0.0004 (the upload was built from predictions rounded to six
+decimals). Seed 42; only the committed feature caches are needed, not `torch`.
+
+## Reproduce everything
 ```bash
 pip install -r requirements.txt
 pip install -r notebooks/joling/requirements-extra.txt -c requirements.txt   # only to rebuild the cache
