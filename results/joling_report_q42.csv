@@ -1,0 +1,16 @@
+grouping,group,count,ai_share,val_auroc
+length,under 150 words,404,0.6287128712871287,0.9975590551181102
+length,150-250 words,1065,0.4131455399061033,0.996790909090909
+length,over 250 words,531,0.576271186440678,0.9975962236746552
+topic domain,"d0: ve, like, just",394,0.5177664974619289,0.9997162022703818
+topic domain,"d1: said, year, company",357,0.5014005602240896,0.9941152470026992
+topic domain,"d2: properties, study, quantum",193,0.46632124352331605,0.9980582524271845
+topic domain,"d3: pepper, cup, chopped",204,0.5147058823529411,0.9985569985569985
+topic domain,"d4: film, movie, br",146,0.547945205479452,0.9986742424242424
+topic domain,"d5: segmentation, image, images",231,0.45454545454545453,0.9987150415721845
+topic domain,"d6: sugar, cup, flour",188,0.5,0.9896446355817111
+topic domain,"d7: born, university, career",287,0.49825783972125437,0.996552059052059
+AI kind vs all humans,kind 0: close to human on every feature,277,,0.9929909747292418
+AI kind vs all humans,kind 1: very predictable,61,,1.0
+AI kind vs all humans,kind 2: avoids repetition,162,,0.9999876543209877
+AI kind vs all humans,kind 3: ordinary smooth AI,500,,0.998101

@@ -1,0 +1,5 @@
+ai_kind,false negatives,AI validation texts,miss rate
+kind 0,22,277,0.079
+kind 1,0,61,0.0
+kind 2,0,162,0.0
+kind 3,8,500,0.016

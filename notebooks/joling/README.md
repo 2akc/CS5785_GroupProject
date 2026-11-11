@@ -14,6 +14,7 @@ Rules followed here:
 | `03_repetition_fingerprint.ipynb` | Finds the weak spot of `02` (AI text that avoids repeating itself), adds repetition features, re-blends. Writes three more Kaggle files. About 3 minutes (uses cached features and scores). |
 | `04_unseen_ai_kind.ipynb` | A third stress test: hide one kind of AI text. Compares classifier designs on it, re-chooses the blend weight, writes the current best Kaggle files. About 12 minutes. |
 | `05_newer_language_model.ipynb` | Recomputes the features with SmolLM2-360M (2024) and compares GPT-2, SmolLM2 and both. Writes the current best Kaggle files. About 10 minutes. |
+| `06_report_experiments.ipynb` | Numbers for the report with the final model: learning curve (Q2), train vs validation (Q4.1), subgroups (Q4.2), false positives / negatives (Q4.3). About 3 minutes. |
 | `make_submission.py` | **One command that rebuilds the final Kaggle file** from the cached features (about 2 minutes). |
 | `lm_onepass.py` | The same features in one pass, for any small GPT-style model. `python notebooks/joling/lm_onepass.py` rebuilds the SmolLM2 cache (about 50 minutes, resumable). |
 | `kind_eval.py` | `AIKinds` (unsupervised groups of AI texts) and the unseen-kind stress test. |
