@@ -93,3 +93,59 @@ def blend_by_domain(text_scores, lm_scores, dom, lm_weight: float) -> np.ndarray
         m = dom == d
         out[m] = blend(text_scores[m], lm_scores[m], lm_weight)
     return out
+
+
+class BaggedBoost(BaseEstimator):
+    """Average of ``n_models`` boosted-tree models, each trained on a bootstrap sample
+    (rows drawn with replacement) with its own seed. Averaging many slightly different
+    models gives steadier scores than one model."""
+
+    def __init__(self, n_models: int = 10, max_depth: int = 3, learning_rate: float = 0.05, max_iter: int = 300,
+                 min_samples_leaf: int = 40, l2_regularization: float = 1.0, max_features: float = 0.5,
+                 seed: int = SEED):
+        self.n_models, self.max_depth, self.learning_rate, self.max_iter = n_models, max_depth, learning_rate, max_iter
+        self.min_samples_leaf, self.l2_regularization, self.max_features, self.seed = (
+            min_samples_leaf, l2_regularization, max_features, seed)
+
+    def fit(self, X, y):
+        X, y = np.asarray(X), np.asarray(y)
+        rng = np.random.default_rng(self.seed)
+        self.models_ = []
+        for k in range(self.n_models):
+            rows = rng.integers(0, len(y), len(y))
+            self.models_.append(HistGradientBoostingClassifier(
+                max_depth=self.max_depth, learning_rate=self.learning_rate, max_iter=self.max_iter,
+                min_samples_leaf=self.min_samples_leaf, l2_regularization=self.l2_regularization,
+                max_features=self.max_features, random_state=self.seed + k).fit(X[rows], y[rows]))
+        self.classes_ = np.array([0, 1])
+        return self
+
+    def predict_proba(self, X):
+        p = np.mean([m.predict_proba(X)[:, 1] for m in self.models_], axis=0)
+        return np.column_stack([1 - p, p])
+
+
+class LinearPlusTrees(BaseEstimator):
+    """Mean of two probabilities: a logistic regression and a bag of careful boosted trees.
+
+    The trees are sharper on kinds of AI text seen in training; the linear model carries
+    over better to kinds it has not seen. Their plain average keeps most of both."""
+
+    def __init__(self, C: float = 1.0, n_models: int = 10, seed: int = SEED):
+        self.C, self.n_models, self.seed = C, n_models, seed
+
+    def fit(self, X, y):
+        self.linear_ = Pipeline([("scale", StandardScaler()),
+                                 ("clf", LogisticRegression(C=self.C, max_iter=5000))]).fit(X, y)
+        self.trees_ = BaggedBoost(n_models=self.n_models, seed=self.seed).fit(X, y)
+        self.classes_ = np.array([0, 1])
+        return self
+
+    def predict_proba(self, X):
+        p = (self.linear_.predict_proba(X)[:, 1] + self.trees_.predict_proba(X)[:, 1]) / 2
+        return np.column_stack([1 - p, p])
+
+
+def lm_linear_plus_trees(columns=None, C: float = 1.0, n_models: int = 10, model_name: str = "gpt2") -> Pipeline:
+    """Text -> cached features -> ``LinearPlusTrees``."""
+    return Pipeline([("lm", CachedLMFeatures(columns, model_name)), ("clf", LinearPlusTrees(C=C, n_models=n_models))])
