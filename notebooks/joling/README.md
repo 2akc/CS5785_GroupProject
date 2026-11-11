@@ -14,6 +14,7 @@ Rules followed here:
 | `03_repetition_fingerprint.ipynb` | Finds the weak spot of `02` (AI text that avoids repeating itself), adds repetition features, re-blends. Writes three more Kaggle files. About 3 minutes (uses cached features and scores). |
 | `04_unseen_ai_kind.ipynb` | A third stress test: hide one kind of AI text. Compares classifier designs on it, re-chooses the blend weight, writes the current best Kaggle files. About 12 minutes. |
 | `05_newer_language_model.ipynb` | Recomputes the features with SmolLM2-360M (2024) and compares GPT-2, SmolLM2 and both. Writes the current best Kaggle files. About 10 minutes. |
+| `make_submission.py` | **One command that rebuilds the final Kaggle file** from the cached features (about 2 minutes). |
 | `lm_onepass.py` | The same features in one pass, for any small GPT-style model. `python notebooks/joling/lm_onepass.py` rebuilds the SmolLM2 cache (about 50 minutes, resumable). |
 | `kind_eval.py` | `AIKinds` (unsupervised groups of AI texts) and the unseen-kind stress test. |
 | `repetition_features.py` | Word-count and GPT-2 repetition features. `python notebooks/joling/repetition_features.py` rebuilds the cache (about 30 minutes, resumable). |
@@ -23,7 +24,18 @@ Rules followed here:
 | `plots.py` | Chart helpers. |
 | `requirements-extra.txt` | `torch` and `transformers`, needed only to rebuild the feature cache. |
 
-## Reproduce
+## Rebuild the final submission
+```bash
+pip install -r requirements.txt
+python notebooks/joling/make_submission.py                 # selected file, Kaggle public 0.963
+python notebooks/joling/make_submission.py --variant tf    # second selected file (+ DistilRoBERTa), public 0.961
+python notebooks/joling/make_submission.py --variant smol  # runner-up (SmolLM2 features only), public 0.958
+```
+Writes `submissions/submission_<time>_joling_final*.csv`. The first and third commands reproduce the uploaded files
+exactly; the second matches the uploaded file to within 0.0004 (the upload was built from predictions rounded to six
+decimals). Seed 42; only the committed feature caches are needed, not `torch`.
+
+## Reproduce everything
 ```bash
 pip install -r requirements.txt
 pip install -r notebooks/joling/requirements-extra.txt -c requirements.txt   # only to rebuild the cache
@@ -49,12 +61,13 @@ without the topic (domain) or without the kind of AI text it is tested on.
 | `robust_svm_tuned` | 0.979 | 0.933 | 0.961 | not recorded (0.913 with the blank-line boost) |
 | `02` classifier: trees on 24 predictability features | 0.979 | 0.976 | 0.925 | 0.914 |
 | `03` classifier: + repetition features (54) | 0.991 | 0.988 | 0.971 | 0.937 |
-| `04` classifier: linear + bagged trees (54) | 0.989 | 0.987 | 0.982 | not uploaded yet |
+| `04` classifier: linear + bagged trees (54) | 0.989 | 0.987 | 0.982 | not uploaded |
 | `02` blend: SVM + `02` classifier (weight 0.6) | 0.993 | 0.987 | 0.975 | 0.936 (0.941 with the blank-line boost) |
-| `04` blend: SVM + `04` classifier (weight 0.8) | 0.993 | 0.990 | 0.988 | not uploaded yet |
-| `05` classifier: GPT-2 + SmolLM2 features (87) | 0.994 | 0.992 | 0.988 | not uploaded yet |
+| `04` blend: SVM + `04` classifier (weight 0.8) | 0.993 | 0.990 | 0.988 | not uploaded |
+| `05` classifier: GPT-2 + SmolLM2 features (87) | 0.994 | 0.992 | 0.988 | 0.955 |
 | `05` blend: SVM + `05` classifier (weight 0.8) | 0.997 | 0.993 | 0.992 | **0.963** with the blank-line boost |
 | `05` runner-up blend: SVM + SmolLM2-only classifier (weight 0.8) | 0.996 | not run | not run | 0.958 with the blank-line boost |
+| `05` blend + Aidan's DistilRoBERTa (weight 0.2) | 0.998 | not run | not run | 0.961 |
 
 Kaggle public scores (900 test rows) are listed in `results/joling_kaggle_public.csv`.
 Current best files: `submissions/submission_<time>_joling_{lm_05,blend_05_blank}.csv`, written by notebook `05`.
