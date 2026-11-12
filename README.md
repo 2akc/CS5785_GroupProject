@@ -46,5 +46,3 @@ Writes a validated `submissions/submission_<timestamp>.csv` (3,000 rows, `id,lab
 | `results/`, `figures/` | Experiment outputs used in the report |
 | `report/` | LaTeX report (`cd report && latexmk -pdf main.tex`) |
 
-## AI tool usage
-TODO before submission.
