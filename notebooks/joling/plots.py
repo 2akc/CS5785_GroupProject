@@ -156,3 +156,31 @@ def plot_feature_by_group(features: pd.DataFrame, groups, columns: list[str], ti
     axes[0][-1].legend(frameon=False, fontsize=8.5, labelcolor=SECONDARY, loc="upper right")
     fig.tight_layout()
     return fig
+
+
+def plot_learning_curve(sizes, train, val, title: str | None = None):
+    """Training and validation AUROC against the number of training rows (log x-axis)."""
+    sizes, train, val = np.asarray(sizes), np.asarray(train, float), np.asarray(val, float)
+    fig, ax = plt.subplots(figsize=(6.6, 3.8), facecolor=SURFACE)
+    for values, name, colour, marker in ((train, "Training", BLUE, "o"), (val, "Validation", ORANGE, "s")):
+        ax.plot(sizes, values, color=colour, linewidth=2, marker=marker, markersize=7, markeredgecolor=SURFACE,
+                markeredgewidth=1.5, label=name)
+        ax.annotate(f"{values[-1]:.4f}", (sizes[-1], values[-1]), xytext=(8, 0), textcoords="offset points",
+                    va="center", fontsize=9, color=SECONDARY)
+        ax.annotate(f"{values[0]:.4f}", (sizes[0], values[0]), xytext=(-8, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=9, color=SECONDARY)
+    ax.set_xscale("log")
+    ax.set_xticks(sizes)
+    ax.set_xticklabels([f"{s:,}" for s in sizes])
+    ax.minorticks_off()
+    ax.set_xlim(sizes[0] * 0.62, sizes[-1] * 1.5)
+    ax.set_xlabel("Training rows (log scale)", color=SECONDARY, fontsize=9)
+    ax.set_ylabel("AUROC", color=SECONDARY, fontsize=9)
+    if title:
+        ax.set_title(title, loc="left", fontsize=10, color=INK)
+    _clean(ax)
+    ax.grid(axis="y", color=GRID, linewidth=0.8)
+    ax.grid(axis="x", visible=False)
+    ax.legend(frameon=False, fontsize=9, labelcolor=SECONDARY, loc="lower right")
+    fig.tight_layout()
+    return fig

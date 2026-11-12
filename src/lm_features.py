@@ -9,26 +9,22 @@ The model runs on this laptop (no API calls). Its weights are pretrained and are
 trained or fine-tuned here; the only thing we train later is a small classifier on top of
 the numbers this file produces.
 
-Run once to compute and cache features for every file (about 30 minutes; it saves as it
-goes, so an interrupted run can simply be started again):
+Run once, from the repo root, to compute and cache features for every file (about 30
+minutes; it saves as it goes, so an interrupted run can simply be started again). Needs
+the extra packages in notebooks/joling/requirements-extra.txt (torch, transformers):
 
-    python notebooks/joling/lm_features.py            # writes results/joling_lm_features_gpt2.csv
+    python -m src.lm_features            # writes results/joling_lm_features_gpt2.csv
 """
 from __future__ import annotations
 
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from src.config import ID_COL, RESULTS_DIR, TEXT_COL  # noqa: E402
-from src.features import normalize_style  # noqa: E402
+from .config import ID_COL, RESULTS_DIR, ROOT, TEXT_COL
+from .features import normalize_style
 
 MAX_TOKENS = 512        # longest texts are about 350 words, roughly 470 tokens
 FEATURES = [
@@ -166,7 +162,7 @@ def load_cached(model_name: str = "gpt2") -> pd.DataFrame:
     """Cached features for every text in train / unlabeled / test, indexed by ``id``."""
     path = cache_path(model_name)
     if not path.exists():
-        raise FileNotFoundError(f"{path} not found. Run:  python notebooks/joling/lm_features.py")
+        raise FileNotFoundError(f"{path} not found. Run:  python -m src.lm_features")
     return pd.read_csv(path).set_index(ID_COL)
 
 
@@ -177,7 +173,7 @@ def build_cache(model_name: str = "gpt2", reference_name: str | None = "distilgp
     Work is saved after every ``chunk`` texts. If the run is interrupted, running the same
     command again continues from where it stopped.
     """
-    from src.data import load_test, load_train, load_unlabeled
+    from .data import load_test, load_train, load_unlabeled
 
     path = cache_path(model_name) if not limit else cache_path(model_name).with_suffix(".sample.csv")
     done_ids = set(pd.read_csv(path, usecols=[ID_COL])[ID_COL]) if path.exists() else set()
